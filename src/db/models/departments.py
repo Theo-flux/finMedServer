@@ -2,12 +2,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlmodel import Column, DateTime, Field, SQLModel, Relationship
+from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from src.db.models.bills import Bill
     from src.db.models.budgets import Budget
     from src.db.models.users import User
-    from src.db.models.bills import Bill
 
 
 class Department(SQLModel, table=True):

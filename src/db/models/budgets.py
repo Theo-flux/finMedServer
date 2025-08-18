@@ -1,9 +1,9 @@
-from decimal import Decimal
 import uuid
 from datetime import datetime, timezone
-from typing import List, TYPE_CHECKING, Optional
+from decimal import Decimal
+from typing import TYPE_CHECKING, List, Optional
 
-from sqlmodel import Column, DateTime, Field, Numeric, SQLModel, Relationship
+from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from src.db.models.departments import Department
