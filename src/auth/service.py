@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.auth.schemas import ChangePwdModel, TokenModel, TokenUserModel
-from src.db.models import User
+from src.db.models.users import User
 from src.db.redis import add_jti_to_block_list
 from src.misc.schemas import ServerRespModel
 from src.users.schemas import CreateUserModel, LoginUserModel

@@ -1,7 +1,7 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.models import User
+from src.db.models.users import User
 from src.utils.validators import is_email
 
 

@@ -1,22 +1,18 @@
+from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import EmailStr
-from sqlmodel import Column, DateTime, Field, SQLModel
+from sqlmodel import Column, DateTime, Field, SQLModel, Relationship
+
+from src.db.models.bills import Bill
 
 
-class User(SQLModel, table=True):
-    __tablename__ = "users"
+class Service(SQLModel, table=True):
+    __tablename__ = "services"
 
     id: Optional[int] = Field(primary_key=True, default=None)
     uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
-    first_name: str = Field(...)
-    last_name: str = Field(...)
-    email: EmailStr = Field(...)
-    phone_number: str = Field(...)
-    password: str = Field(...)
-    avatar: Optional[str] = Field(default="")
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True)),
         default_factory=lambda: datetime.now(timezone.utc),
@@ -25,6 +21,11 @@ class User(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True)),
         default_factory=lambda: datetime.now(timezone.utc),
     )
+    name: str = Field(...)
+    status: str = Field(...)
+
+    # relationship
+    bills: List[Bill] = Relationship(back_populates="service")
 
     def __repr__(self) -> str:
-        return f"<User: {self.model_dump()}>"
+        return f"<Service: {self.model_dump()}>"
