@@ -1,11 +1,11 @@
-from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, SQLModel, Relationship
 
-from src.db.models.bills import Bill
+if TYPE_CHECKING:
+    from src.db.models.bills import Bill
 
 
 class Service(SQLModel, table=True):
@@ -25,7 +25,7 @@ class Service(SQLModel, table=True):
     status: str = Field(...)
 
     # relationship
-    bills: List[Bill] = Relationship(back_populates="service")
+    bills: List["Bill"] = Relationship(back_populates="service")
 
     def __repr__(self) -> str:
         return f"<Service: {self.model_dump()}>"

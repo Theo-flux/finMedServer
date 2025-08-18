@@ -1,13 +1,13 @@
-from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, SQLModel, Relationship
 
-from src.db.models.budgets import Budget
-from src.db.models.users import User
-from src.db.models.bills import Bill
+if TYPE_CHECKING:
+    from src.db.models.budgets import Budget
+    from src.db.models.users import User
+    from src.db.models.bills import Bill
 
 
 class Department(SQLModel, table=True):
@@ -27,9 +27,9 @@ class Department(SQLModel, table=True):
     status: str = Field(...)
 
     # relationships
-    users: List[User] = Relationship(back_populates="department")
-    earnings: List[Bill] = Relationship(back_populates="department")
-    budgets: List[Budget] = Relationship(back_populates="department")
+    users: List["User"] = Relationship(back_populates="department")
+    earnings: List["Bill"] = Relationship(back_populates="department")
+    budgets: List["Budget"] = Relationship(back_populates="department")
 
     def __repr__(self) -> str:
         return f"<Department: {self.model_dump()}>"
