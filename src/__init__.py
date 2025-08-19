@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from src.db.main import init_db
 from src.features.auth.routers import auth_router
+from src.features.departments.routers import dept_router
 from src.features.roles.routers import role_router
 from src.features.users.routers import user_router
 from src.utils.exceptions import register_exceptions
@@ -43,3 +44,4 @@ register_middlewares(app)
 app.include_router(auth_router, prefix=f"{api_version}/auth", tags=["auth"])
 app.include_router(user_router, prefix=f"{api_version}/users", tags=["user"])
 app.include_router(role_router, prefix=f"{api_version}/roles", tags=["role"])
+app.include_router(dept_router, prefix=f"{api_version}/depts", tags=["department"])

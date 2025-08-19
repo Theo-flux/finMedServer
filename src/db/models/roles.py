@@ -17,13 +17,13 @@ class Role(SQLModel, table=True):
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
+            default=lambda: datetime.now(timezone.utc),
         ),
     )
     updated_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
+            default=lambda: datetime.now(timezone.utc),
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )

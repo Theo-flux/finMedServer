@@ -14,13 +14,12 @@ class Patient(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
     created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
     )
     updated_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
+            default=lambda: datetime.now(timezone.utc),
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )

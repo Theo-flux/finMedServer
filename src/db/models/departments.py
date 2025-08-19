@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
+from src.features.departments.schemas import DepartmentStatus
+
 if TYPE_CHECKING:
     from src.db.models.bills import Bill
     from src.db.models.budgets import Budget
@@ -16,18 +18,17 @@ class Department(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
     created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
     )
     updated_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
+            default=lambda: datetime.now(timezone.utc),
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
     name: str = Field(...)
-    status: str = Field(...)
+    status: Optional[str] = Field(default=DepartmentStatus.ACTIVE.value)
 
     # relationships
     users: List["User"] = Relationship(back_populates="department")

@@ -83,6 +83,18 @@ class RoleNotFound(AppException):
     pass
 
 
+class DeptNotFound(AppException):
+    """This handles non existing dept"""
+
+    pass
+
+
+class DeptExists(AppException):
+    """This handles already existing dept in the database"""
+
+    pass
+
+
 def create_exception_handler(
     status_code: int, extra_content: Dict[str, Any] = None
 ) -> Callable[[Request, Exception], JSONResponse]:
@@ -142,6 +154,14 @@ def register_exceptions(app: FastAPI):
     app.add_exception_handler(
         RoleNotFound,
         create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Role not found."}),
+    )
+    app.add_exception_handler(
+        DeptNotFound,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Department not found."}),
+    )
+    app.add_exception_handler(
+        DeptExists,
+        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Role already exists."}),
     )
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)

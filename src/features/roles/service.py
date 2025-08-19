@@ -18,9 +18,7 @@ class RoleService:
         statement = select(Role).where(Role.uid == role_uid)
         result = await session.exec(statement=statement)
 
-        role = result.first()
-
-        return role
+        return result.first()
 
     async def get_role_by_name(self, role_name: str, session: AsyncSession):
         statement = select(Role).where(Role.name == role_name.lower())
