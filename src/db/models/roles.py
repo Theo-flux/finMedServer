@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
+from src.features.roles.schemas import RoleStatus
+
 if TYPE_CHECKING:
     from src.db.models.users import User
 
@@ -21,6 +23,7 @@ class Role(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
     )
     name: str = Field(...)
+    status: Optional[str] = Field(default=RoleStatus.ACTIVE.value)
 
     users: List["User"] = Relationship(back_populates="role")
 

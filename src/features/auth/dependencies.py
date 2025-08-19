@@ -3,8 +3,8 @@ from typing import Optional
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.auth.authentication import Authentication
 from src.db.redis import token_in_block_list
+from src.features.auth.authentication import Authentication
 from src.utils.exceptions import AccessTokenRequired, InvalidToken, RefreshTokenRequired
 
 

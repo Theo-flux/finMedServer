@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
+from src.features.services.schemas import ServiceStatus
+
 if TYPE_CHECKING:
     from src.db.models.bills import Bill
 
@@ -22,7 +24,9 @@ class Service(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
     )
     name: str = Field(...)
-    status: str = Field(...)
+    status: Optional[str] = Field(
+        sa_column=Column(default=ServiceStatus.ACTIVE.value, server_default=ServiceStatus.ACTIVE.value)
+    )
 
     # relationship
     bills: List["Bill"] = Relationship(back_populates="service")

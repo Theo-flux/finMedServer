@@ -71,6 +71,18 @@ class InvalidLink(AppException):
     pass
 
 
+class RoleExists(AppException):
+    """This handles already existing role in the database"""
+
+    pass
+
+
+class RoleNotFound(AppException):
+    """This handles non existing role"""
+
+    pass
+
+
 def create_exception_handler(
     status_code: int, extra_content: Dict[str, Any] = None
 ) -> Callable[[Request, Exception], JSONResponse]:
@@ -117,11 +129,19 @@ def register_exceptions(app: FastAPI):
     )
     app.add_exception_handler(
         ExpiredLink,
-        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Link expired. get a new one"}),
+        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Link expired. get a new one."}),
     )
     app.add_exception_handler(
         InvalidLink,
-        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Link is invalid. get a new one"}),
+        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Link is invalid. get a new one."}),
+    )
+    app.add_exception_handler(
+        RoleExists,
+        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Role already exists."}),
+    )
+    app.add_exception_handler(
+        RoleNotFound,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Role not found."}),
     )
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)

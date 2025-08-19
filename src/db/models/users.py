@@ -6,6 +6,7 @@ from pydantic import EmailStr
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
 from src.db.models.roles import Role
+from src.features.users.schemas import UserStatus
 
 if TYPE_CHECKING:
     from src.db.models.budgets import Budget
@@ -37,14 +38,18 @@ class User(SQLModel, table=True):
     phone_number: Optional[str] = Field(default="")
     password: str = Field(...)
     avatar: Optional[str] = Field(default="")
-    status: str = Field(...)
+    status: Optional[str] = Field(default=UserStatus.IN_ACTIVE.value)
 
     # relationship
     department: Optional["Department"] = Relationship(back_populates="users")
     role: "Role" = Relationship(back_populates="users")
     payments: List["Payment"] = Relationship(back_populates="user")
-    created_budgets: List["Budget"] = Relationship(back_populates="user")
-    approved_budgets: List["Budget"] = Relationship(back_populates="user")
+    created_budgets: List["Budget"] = Relationship(
+        back_populates="user", sa_relationship_kwargs={"foreign_keys": "[Budget.user_uid]"}
+    )
+    approved_budgets: List["Budget"] = Relationship(
+        back_populates="user", sa_relationship_kwargs={"foreign_keys": "[Budget.approver_uid]"}
+    )
     created_expenses: List["Expenses"] = Relationship(back_populates="user")
 
     def __repr__(self) -> str:

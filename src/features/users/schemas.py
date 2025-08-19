@@ -1,17 +1,25 @@
 import uuid
 from datetime import datetime
+from enum import StrEnum
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from src.features.roles.schemas import UserRoles
 from src.utils.validators import email_validator
+
+
+class UserStatus(StrEnum):
+    ACTIVE = "ACTIVE"
+    IN_ACTIVE = "IN_ACTIVE"
+    SUSPENDED = "SUSPENDED"
 
 
 class CreateUserModel(BaseModel):
     first_name: str = Field(...)
     last_name: str = Field(...)
     email: EmailStr = Field(...)
-    phone_number: str = Field(...)
+    role_uid: uuid.UUID = Field(...)
     password: str = Field(...)
 
     @field_validator("email")
@@ -28,29 +36,30 @@ class LoginUserModel(BaseModel):
     @classmethod
     def validate_email(cls, value):
         if not value.strip():
-            raise ValueError("Email must not be empty")
+            raise ValueError("Email can't not be empty")
         return email_validator(value)
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, value):
         if not value.strip():
-            raise ValueError("Password must not be empty")
+            raise ValueError("Password can't not be empty")
         return value
 
 
 class UserResponseModel(BaseModel):
     id: int
-    uuid: uuid.UUID
+    uid: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    staff_no: str
     first_name: str
     last_name: str
     avatar: Optional[str]
     email: str
-    phone_number: str
-    is_email_verified: bool
+    phone_number: Optional[str]
+    role: UserRoles
     is_phone_number_verified: bool
-    created_at: datetime
-    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

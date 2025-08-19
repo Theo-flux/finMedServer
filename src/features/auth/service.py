@@ -2,15 +2,15 @@ from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.auth.schemas import ChangePwdModel, TokenModel, TokenUserModel
 from src.db.models.users import User
 from src.db.redis import add_jti_to_block_list
+from src.features.users.schemas import CreateUserModel, LoginUserModel
+from src.features.users.service import UserService
 from src.misc.schemas import ServerRespModel
-from src.users.schemas import CreateUserModel, LoginUserModel
-from src.users.service import UserService
-from src.utils.exceptions import UserEmailExists, UserNotFound, UserPhoneNumberExists, WrongCredentials
+from src.utils.exceptions import UserEmailExists, UserNotFound, WrongCredentials
 
 from .authentication import Authentication
+from .schemas import ChangePwdModel, TokenModel, TokenUserModel
 
 user_service = UserService()
 
@@ -121,16 +121,19 @@ class AuthService:
         if await user_service.get_user_by_email(user.get("email"), session):
             raise UserEmailExists()
 
-        if await user_service.get_user_by_phone(user.get("phone_number"), session):
-            raise UserPhoneNumberExists()
+        # TODO:
+        # 1. Ensure the role exists and the role status is active.
+        # 2. Ensure the department exists and the department status is active.
+        # 3. Ensure to generate a unique staff no.
 
         user["password"] = Authentication.generate_password_hash(user["password"])
+
         new_user = User(**user)
 
         session.add(new_user)
         await session.commit()
 
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
+            status_code=status.HTTP_201_CREATED,
             content=ServerRespModel[bool](data=True, message="Account created!").model_dump(),
         )

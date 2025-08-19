@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Body, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.auth.dependencies import AccessTokenBearer, RefreshTokenBearer
-from src.auth.schemas import ChangePwdModel, LoginResModel, TokenUserModel
-from src.auth.service import AuthService
 from src.db.main import get_session
+from src.features.users.schemas import CreateUserModel, LoginUserModel
 from src.misc.schemas import ServerRespModel
-from src.users.schemas import CreateUserModel, LoginUserModel
+
+from .dependencies import AccessTokenBearer, RefreshTokenBearer
+from .schemas import ChangePwdModel, LoginResModel, TokenUserModel
+from .service import AuthService
 
 auth_router = APIRouter()
 auth_service = AuthService()
