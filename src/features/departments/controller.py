@@ -13,7 +13,7 @@ from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import DeptExists, DeptNotFound
 
 
-class DepartmentService:
+class DeptController:
     def generate_staff_no(self, dept: str):
         # TODO:
         # 1. Format (<first three letters of dept.>-<year>-<id padded with two zeros.)

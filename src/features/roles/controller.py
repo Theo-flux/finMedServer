@@ -13,7 +13,7 @@ from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import RoleExists, RoleNotFound
 
 
-class RoleService:
+class RoleController:
     async def get_role_by_uid(self, role_uid: uuid.UUID, session: AsyncSession):
         statement = select(Role).where(Role.uid == role_uid)
         result = await session.exec(statement=statement)

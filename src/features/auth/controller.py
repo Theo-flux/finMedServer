@@ -4,21 +4,21 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
 from src.db.redis import add_jti_to_block_list
+from src.features.users.controller import UserController
 from src.features.users.schemas import CreateUserModel, LoginUserModel
-from src.features.users.service import UserService
 from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import UserEmailExists, UserNotFound, WrongCredentials
 
 from .authentication import Authentication
 from .schemas import ChangePwdModel, TokenModel, TokenUserModel
 
-user_service = UserService()
+user_controller = UserController()
 
 
-class AuthService:
+class AuthController:
     async def get_current_user(self, token_payload: dict, session: AsyncSession):
         user_email = token_payload["user"]["email"]
-        user = await user_service.get_user_by_email(user_email, session)
+        user = await user_controller.get_user_by_email(user_email, session)
 
         if not user:
             raise UserNotFound()
@@ -64,12 +64,12 @@ class AuthService:
         )
 
     async def change_pwd(self, data: ChangePwdModel, session: AsyncSession):
-        user = await user_service.get_user_by_email(email=data.email, session=session)
+        user = await user_controller.get_user_by_email(email=data.email, session=session)
 
         if not user:
             raise UserNotFound()
 
-        await user_service.update_user(
+        await user_controller.update_user(
             user=user,
             user_data={"password": Authentication.generate_password_hash(data.model_dump().get("new_password"))},
             session=session,
@@ -81,7 +81,7 @@ class AuthService:
         )
 
     async def login_user(self, login_data: LoginUserModel, session: AsyncSession):
-        user = await user_service.get_user_by_email(login_data.email, session)
+        user = await user_controller.get_user_by_email(login_data.email, session)
 
         if user is None:
             raise UserNotFound()
@@ -118,7 +118,7 @@ class AuthService:
     async def create_user(self, user_data: CreateUserModel, session: AsyncSession):
         user = user_data.model_dump()
 
-        if await user_service.get_user_by_email(user.get("email"), session):
+        if await user_controller.get_user_by_email(user.get("email"), session):
             raise UserEmailExists()
 
         # TODO:

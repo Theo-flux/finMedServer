@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
+from src.features.roles.controller import RoleController
 from src.features.roles.schemas import CreateRole, RoleResponse, UpdateRole
-from src.features.roles.service import RoleService
 from src.misc.schemas import ServerRespModel
 
 role_router = APIRouter()
-role_service = RoleService()
+role_service = RoleController()
 
 
 @role_router.get("", response_model=ServerRespModel[List[RoleResponse]])

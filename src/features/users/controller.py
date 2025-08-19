@@ -5,7 +5,7 @@ from src.db.models.users import User
 from src.utils.validators import is_email
 
 
-class UserService:
+class UserController:
     async def get_user_by_email(self, email: str, session: AsyncSession):
         statement = select(User).where(User.email == email.lower())
         result = await session.exec(statement=statement)
