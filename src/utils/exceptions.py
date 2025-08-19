@@ -95,6 +95,18 @@ class DeptExists(AppException):
     pass
 
 
+class ServiceNotFound(AppException):
+    """This handles non existing service"""
+
+    pass
+
+
+class ServiceExists(AppException):
+    """This handles already existing service in the database"""
+
+    pass
+
+
 def create_exception_handler(
     status_code: int, extra_content: Dict[str, Any] = None
 ) -> Callable[[Request, Exception], JSONResponse]:
@@ -161,7 +173,15 @@ def register_exceptions(app: FastAPI):
     )
     app.add_exception_handler(
         DeptExists,
-        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Role already exists."}),
+        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Department already exists."}),
+    )
+    app.add_exception_handler(
+        ServiceNotFound,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Service not found."}),
+    )
+    app.add_exception_handler(
+        ServiceExists,
+        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Service already exists."}),
     )
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)
