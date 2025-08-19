@@ -1,9 +1,9 @@
-import uuid
-from datetime import datetime
 from enum import StrEnum
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, field_validator
+
+from src.features.config import DBModel
 
 
 class RoleStatus(StrEnum):
@@ -11,11 +11,8 @@ class RoleStatus(StrEnum):
     IN_ACTIVE = "IN_ACTIVE"
 
 
-class UserRoles(BaseModel):
+class UserRoles(DBModel):
     id: int
-    uid: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
     name: str
     status: RoleStatus
 
@@ -23,17 +20,23 @@ class UserRoles(BaseModel):
 class CreateRole(BaseModel):
     name: str
 
+    @field_validator("name")
+    @classmethod
+    def name_to_lowercase(cls, v: str) -> str:
+        return v.lower().strip()
+
 
 class UpdateRole(BaseModel):
     name: Optional[str] = None
     status: Optional[RoleStatus] = None
 
+    @field_validator("name")
+    @classmethod
+    def name_to_lowercase(cls, v: str) -> str:
+        return v.lower().strip()
 
-class RoleResponse(BaseModel):
-    uid: uuid.UUID
+
+class RoleResponse(DBModel):
+    id: int
     name: str
     status: RoleStatus
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)

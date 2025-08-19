@@ -18,8 +18,11 @@ class Patient(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
     )
     updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            default_factory=lambda: datetime.now(timezone.utc),
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
     hospital_id: str = Field(nullable=False, index=True, unique=True)
     first_name: str = Field(...)

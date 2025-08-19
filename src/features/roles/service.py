@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import List
 
 from fastapi import status
@@ -41,30 +42,31 @@ class RoleService:
         self.is_role_active(role)
 
     async def create_role(self, role: CreateRole, session: AsyncSession):
-        role = self.get_role_by_name(role.name, session)
+        data = role.model_dump()
 
-        if role is not None:
+        if await self.get_role_by_name(data.get("name"), session):
             raise RoleExists()
 
-        new_role = Role(**role)
+        new_role = Role(**data)
 
-        await session.add(new_role)
-        session.commit()
+        session.add(new_role)
+        await session.commit()
 
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,
             content=ServerRespModel[bool](data=True, message="Role created!").model_dump(),
         )
 
-    async def update_role(self, role_uid: uuid.UUID, role: UpdateRole, session: AsyncSession):
+    async def update_role(self, role_uid: uuid.UUID, data: UpdateRole, session: AsyncSession):
         role_to_update = await self.get_role_by_uid(role_uid, session)
 
         if role_to_update is None:
             raise RoleNotFound()
 
-        valid_attrs = role.model_dump(exclude_none=True)
+        valid_attrs = data.model_dump(exclude_none=True)
 
         if valid_attrs:
+            valid_attrs["updated_at"] = datetime.now()
             statement = update(Role).where(Role.uid == role_uid).values(**valid_attrs)
             await session.exec(statement=statement)
             await session.commit()
@@ -80,11 +82,27 @@ class RoleService:
         result = await session.exec(statement=statement)
         roles = result.all()
 
-        role_responses = [RoleResponse.model_validate(role) for role in roles]
+        print("result", result)
+
+        role_responses = [RoleResponse.model_validate(role, from_attributes=True) for role in roles]
 
         return JSONResponse(
-            status_code=status.HTTP_202_ACCEPTED,
+            status_code=status.HTTP_200_OK,
             content=ServerRespModel[List[RoleResponse]](
                 data=role_responses, message="Roles retrieved successfully!"
+            ).model_dump(),
+        )
+
+    async def single_role(self, role_uid: uuid.UUID, session: AsyncSession):
+        role = await self.get_role_by_uid(role_uid, session)
+
+        if role is None:
+            raise RoleNotFound()
+
+        role_response = RoleResponse.model_validate(role)
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[RoleResponse](
+                data=role_response, message="Role retrieved successfully!"
             ).model_dump(),
         )

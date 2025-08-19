@@ -20,8 +20,11 @@ class Department(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
     )
     updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            default_factory=lambda: datetime.now(timezone.utc),
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
     name: str = Field(...)
     status: str = Field(...)

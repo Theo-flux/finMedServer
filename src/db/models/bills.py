@@ -23,13 +23,13 @@ class Bill(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
     )
     updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            default_factory=lambda: datetime.now(timezone.utc),
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
-    billed_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
-    )
+    billed_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
     service_uid: uuid.UUID = Field(foreign_key="services.uid")
     patient_uid: Optional[uuid.UUID] = Field(foreign_key="patients.uid")
     department_uid: uuid.UUID = Field(foreign_key="departments.uid")

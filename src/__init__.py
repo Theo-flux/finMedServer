@@ -22,6 +22,7 @@ version = "v1"
 api_version = f"/api/{version}"
 
 app = FastAPI(
+    swagger="2.0",
     title="finMed – Modern Finance API for Healthcare",
     description="""
         finMed provides a robust FastAPI backend for managing healthcare finance operations.

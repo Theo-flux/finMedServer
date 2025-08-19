@@ -22,17 +22,14 @@ class Budget(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
     )
     updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            default_factory=lambda: datetime.now(timezone.utc),
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
-    received_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
-    )
-    approved_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True)),
-        default_factory=lambda: datetime.now(timezone.utc),
-    )
+    received_at: Optional[datetime] = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
+    approved_at: Optional[datetime] = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
     department_uid: uuid.UUID = Field(foreign_key="departments.uid")
     user_uid: uuid.UUID = Field(foreign_key="users.uid")
     approver_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")

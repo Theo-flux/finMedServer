@@ -1,0 +1,20 @@
+import uuid
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, field_serializer
+
+
+class DBModel(BaseModel):
+    uid: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_dt(self, value: datetime, _info):
+        return value.isoformat()
+
+    @field_serializer("uid")
+    def serialize_uuid(self, value: uuid.UUID, _info):
+        return str(value)
+
+    model_config = ConfigDict(from_attributes=True)
