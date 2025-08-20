@@ -8,7 +8,7 @@ from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.roles import Role
-from src.features.roles.schemas import CreateRole, RoleResponse, RoleStatus, UpdateRole
+from src.features.roles.schemas import CreateRole, RoleResponseModel, RoleStatus, UpdateRole
 from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import RoleExists, RoleNotFound
 
@@ -32,12 +32,12 @@ class RoleController:
         return False if role.status == RoleStatus.IN_ACTIVE.value else True
 
     async def role_exists(self, role_uid: uuid.UUID, session: AsyncSession):
-        role = self.get_role_by_uid(role_uid, session)
+        role = await self.get_role_by_uid(role_uid, session)
 
         if role is None:
             return False
 
-        self.is_role_active(role)
+        return self.is_role_active(role)
 
     async def create_role(self, role: CreateRole, session: AsyncSession):
         data = role.model_dump()
@@ -82,11 +82,11 @@ class RoleController:
 
         print("result", result)
 
-        role_responses = [RoleResponse.model_validate(role, from_attributes=True) for role in roles]
+        role_responses = [RoleResponseModel.model_validate(role, from_attributes=True) for role in roles]
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[List[RoleResponse]](
+            content=ServerRespModel[List[RoleResponseModel]](
                 data=role_responses, message="Roles retrieved successfully!"
             ).model_dump(),
         )
@@ -97,10 +97,10 @@ class RoleController:
         if role is None:
             raise RoleNotFound()
 
-        role_response = RoleResponse.model_validate(role)
+        role_response = RoleResponseModel.model_validate(role)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[RoleResponse](
+            content=ServerRespModel[RoleResponseModel](
                 data=role_response, message="Role retrieved successfully!"
             ).model_dump(),
         )

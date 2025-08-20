@@ -5,8 +5,8 @@ from fastapi import UploadFile
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from pydantic import EmailStr
 
-from src.auth.authentication import Authentication
 from src.config import Config
+from src.features.auth.authentication import Authentication
 from src.misc.schemas import EmailTypes
 
 ROOT_DIR = Path(__file__).resolve().parent.parent

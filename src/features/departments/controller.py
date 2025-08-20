@@ -8,7 +8,7 @@ from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.departments import Department
-from src.features.departments.schemas import CreateDept, DepartmentStatus, DeptResponse, UpdateDept
+from src.features.departments.schemas import CreateDept, DepartmentStatus, DeptResponseModel, UpdateDept
 from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import DeptExists, DeptNotFound
 
@@ -16,7 +16,7 @@ from src.utils.exceptions import DeptExists, DeptNotFound
 class DeptController:
     def generate_staff_no(self, dept: str):
         # TODO:
-        # 1. Format (<first three letters of dept.>-<year>-<id padded with two zeros.)
+        # 1. Format (<first three letters of dept.>-<year>-<id padded with two leading zeros.)
         # 2. Ensure the department exists and the department status is active.
         # 3. Ensure to generate a unique staff no.
         pass
@@ -40,11 +40,12 @@ class DeptController:
         dept = await self.get_dept_by_uid(dept_uid, session)
 
         if dept is None:
-            return False
+            return None
 
-        self.is_dept_active(dept)
+        if not self.is_dept_active(dept):
+            return None
 
-        return True
+        return dept
 
     async def create_dept(self, dept: CreateDept, session: AsyncSession):
         data = dept.model_dump()
@@ -89,11 +90,11 @@ class DeptController:
 
         print("result", result)
 
-        role_responses = [DeptResponse.model_validate(role, from_attributes=True) for role in roles]
+        role_responses = [DeptResponseModel.model_validate(role, from_attributes=True) for role in roles]
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[List[DeptResponse]](
+            content=ServerRespModel[List[DeptResponseModel]](
                 data=role_responses, message="Depts. retrieved successfully!"
             ).model_dump(),
         )
@@ -104,10 +105,10 @@ class DeptController:
         if role is None:
             raise DeptNotFound()
 
-        role_response = DeptResponse.model_validate(role)
+        role_response = DeptResponseModel.model_validate(role)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[DeptResponse](
+            content=ServerRespModel[DeptResponseModel](
                 data=role_response, message="Depts. retrieved successfully!"
             ).model_dump(),
         )

@@ -12,7 +12,10 @@ if TYPE_CHECKING:
 
 class Role(SQLModel, table=True):
     __tablename__ = "roles"
-    id: Optional[int] = Field(primary_key=True, default=None)
+    id: Optional[int] = Field(
+        primary_key=True,
+        default=None,
+    )
     uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(

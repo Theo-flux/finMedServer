@@ -11,12 +11,6 @@ class RoleStatus(StrEnum):
     IN_ACTIVE = "IN_ACTIVE"
 
 
-class UserRoles(DBModel):
-    id: int
-    name: str
-    status: RoleStatus
-
-
 class CreateRole(BaseModel):
     name: str
 
@@ -36,7 +30,7 @@ class UpdateRole(BaseModel):
         return v.lower().strip()
 
 
-class RoleResponse(DBModel):
+class RoleResponseModel(DBModel):
     id: int
     name: str
     status: RoleStatus

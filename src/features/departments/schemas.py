@@ -30,7 +30,7 @@ class UpdateDept(BaseModel):
         return v.lower().strip()
 
 
-class DeptResponse(DBModel):
+class DeptResponseModel(DBModel):
     id: int
     name: str
     status: DepartmentStatus

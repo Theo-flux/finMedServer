@@ -1,11 +1,12 @@
 import uuid
-from datetime import datetime
 from enum import StrEnum
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from src.features.roles.schemas import UserRoles
+from src.features.config import DBModel
+from src.features.departments.schemas import DeptResponseModel
+from src.features.roles.schemas import RoleResponseModel
 from src.utils.validators import email_validator
 
 
@@ -19,8 +20,9 @@ class CreateUserModel(BaseModel):
     first_name: str = Field(...)
     last_name: str = Field(...)
     email: EmailStr = Field(...)
-    role_uid: uuid.UUID = Field(...)
     password: str = Field(...)
+    department_uid: uuid.UUID = Field(...)
+    role_uid: uuid.UUID = Field(...)
 
     @field_validator("email")
     @classmethod
@@ -47,21 +49,16 @@ class LoginUserModel(BaseModel):
         return value
 
 
-class UserResponseModel(BaseModel):
+class UserResponseModel(DBModel):
     id: int
-    uid: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
     staff_no: str
     first_name: str
     last_name: str
     avatar: Optional[str]
     email: str
     phone_number: Optional[str]
-    role: UserRoles
-    is_phone_number_verified: bool
-
-    model_config = ConfigDict(from_attributes=True)
+    role: RoleResponseModel
+    department: DeptResponseModel
 
 
 class UpdateUserModel(BaseModel):

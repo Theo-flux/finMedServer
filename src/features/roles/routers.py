@@ -6,19 +6,19 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
 from src.features.roles.controller import RoleController
-from src.features.roles.schemas import CreateRole, RoleResponse, UpdateRole
+from src.features.roles.schemas import CreateRole, RoleResponseModel, UpdateRole
 from src.misc.schemas import ServerRespModel
 
 role_router = APIRouter()
 role_service = RoleController()
 
 
-@role_router.get("", response_model=ServerRespModel[List[RoleResponse]])
+@role_router.get("", response_model=ServerRespModel[List[RoleResponseModel]])
 async def get_all_roles(session: AsyncSession = Depends(get_session)):
     return await role_service.get_all_roles(session)
 
 
-@role_router.get("/{role_uid}", response_model=ServerRespModel[RoleResponse])
+@role_router.get("/{role_uid}", response_model=ServerRespModel[RoleResponseModel])
 async def get_single_role(role_uid: uuid.UUID, session: AsyncSession = Depends(get_session)):
     return await role_service.single_role(role_uid, session)
 

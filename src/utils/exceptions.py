@@ -83,6 +83,12 @@ class RoleNotFound(AppException):
     pass
 
 
+class InActiveRole(AppException):
+    """This handles inactive role"""
+
+    pass
+
+
 class DeptNotFound(AppException):
     """This handles non existing dept"""
 
@@ -91,6 +97,12 @@ class DeptNotFound(AppException):
 
 class DeptExists(AppException):
     """This handles already existing dept in the database"""
+
+    pass
+
+
+class InActiveDept(AppException):
+    """This handles inactive department"""
 
     pass
 
@@ -107,6 +119,12 @@ class ServiceExists(AppException):
     pass
 
 
+class InActiveService(AppException):
+    """This handles inactive service"""
+
+    pass
+
+
 class ExpCategoryNotFound(AppException):
     """This handles non existing expense category"""
 
@@ -115,6 +133,12 @@ class ExpCategoryNotFound(AppException):
 
 class ExpCategoryExists(AppException):
     """This handles already existing expense category in the database"""
+
+    pass
+
+
+class InActiveExpCategory(AppException):
+    """This handles inactive expense category"""
 
     pass
 
@@ -180,12 +204,20 @@ def register_exceptions(app: FastAPI):
         create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Role not found."}),
     )
     app.add_exception_handler(
+        InActiveRole,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Role is inactive."}),
+    )
+    app.add_exception_handler(
         DeptNotFound,
         create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Department not found."}),
     )
     app.add_exception_handler(
         DeptExists,
         create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Department already exists."}),
+    )
+    app.add_exception_handler(
+        InActiveDept,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Dept. is inactive."}),
     )
     app.add_exception_handler(
         ServiceNotFound,
@@ -196,12 +228,20 @@ def register_exceptions(app: FastAPI):
         create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Service already exists."}),
     )
     app.add_exception_handler(
+        InActiveService,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Service is inactive."}),
+    )
+    app.add_exception_handler(
         ExpCategoryNotFound,
         create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Service not found."}),
     )
     app.add_exception_handler(
         ExpCategoryExists,
         create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Service already exists."}),
+    )
+    app.add_exception_handler(
+        InActiveExpCategory,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Exp. catgeory is inactive."}),
     )
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)

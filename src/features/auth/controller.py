@@ -4,15 +4,19 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
 from src.db.redis import add_jti_to_block_list
+from src.features.departments.controller import DeptController
+from src.features.roles.controller import RoleController
 from src.features.users.controller import UserController
 from src.features.users.schemas import CreateUserModel, LoginUserModel
 from src.misc.schemas import ServerRespModel
-from src.utils.exceptions import UserEmailExists, UserNotFound, WrongCredentials
+from src.utils.exceptions import InActiveDept, InActiveRole, UserEmailExists, UserNotFound, WrongCredentials
 
 from .authentication import Authentication
 from .schemas import ChangePwdModel, TokenModel, TokenUserModel
 
 user_controller = UserController()
+role_controller = RoleController()
+dept_controller = DeptController()
 
 
 class AuthController:
@@ -121,17 +125,28 @@ class AuthController:
         if await user_controller.get_user_by_email(user.get("email"), session):
             raise UserEmailExists()
 
-        # TODO:
-        # 1. Ensure the role exists and the role status is active.
-        # 2. Ensure the department exists and the department status is active.
-        # 3. Ensure to generate a unique staff no.
+        if await role_controller.role_exists(user.get("role_uid"), session) is False:
+            raise InActiveRole()
+
+        dept = await dept_controller.dept_exists(user.get("department_uid"), session)
+
+        if dept is None:
+            raise InActiveDept()
 
         user["password"] = Authentication.generate_password_hash(user["password"])
 
-        new_user = User(**user)
+        try:
+            new_user = User(**user)
+            session.add(new_user)
+            await session.flush()
 
-        session.add(new_user)
-        await session.commit()
+            await user_controller.generate_staff_no(dept.name, new_user.uid, session)
+
+            await session.commit()
+
+        except Exception as e:
+            await session.rollback()
+            raise e
 
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,

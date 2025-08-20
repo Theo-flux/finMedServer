@@ -1,4 +1,7 @@
-from sqlmodel import select
+import uuid
+from datetime import datetime, timezone
+
+from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
@@ -6,6 +9,15 @@ from src.utils.validators import is_email
 
 
 class UserController:
+    async def generate_staff_no(self, dept: str, user_uid: uuid.UUID, session: AsyncSession):
+        user = await self.get_user_by_uid(user_uid, session)
+        dept_prefix = dept[:3].upper()
+        current_year_last_two_digits = str(datetime.now(timezone.utc).year)[2:]
+        staff_no = f"{dept_prefix}-{current_year_last_two_digits}-{str(user.id).zfill(4)}"
+
+        statement = update(User).where(User.uid == user_uid).values(staff_no=staff_no)
+        await session.exec(statement)
+
     async def get_user_by_email(self, email: str, session: AsyncSession):
         statement = select(User).where(User.email == email.lower())
         result = await session.exec(statement=statement)
@@ -15,6 +27,13 @@ class UserController:
 
     async def get_user_by_phone(self, phone_number: str, session: AsyncSession):
         statement = select(User).where(User.phone_number == phone_number)
+        result = await session.exec(statement)
+        user = result.first()
+
+        return user
+
+    async def get_user_by_uid(self, user_uid: uuid.UUID, session: AsyncSession):
+        statement = select(User).where(User.uid == user_uid)
         result = await session.exec(statement)
         user = result.first()
 

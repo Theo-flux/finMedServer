@@ -33,7 +33,7 @@ class User(SQLModel, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    staff_no: str = Field(nullable=False, index=True, unique=True)
+    staff_no: Optional[str] = Field(nullable=True, index=True, unique=True)
     department_uid: uuid.UUID = Field(foreign_key="departments.uid")
     role_uid: uuid.UUID = Field(foreign_key="roles.uid")
     first_name: str = Field(...)

@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
 
+from src.features.budgets.schemas import BudgetAvailability, BudgetStatus
+
 if TYPE_CHECKING:
     from src.db.models.departments import Department
     from src.db.models.expenses import Expenses
@@ -30,8 +32,8 @@ class Budget(SQLModel, table=True):
     department_uid: uuid.UUID = Field(foreign_key="departments.uid")
     user_uid: uuid.UUID = Field(foreign_key="users.uid")
     approver_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
-    status: str = Field(...)
-    availability: str = Field(...)
+    status: Optional[str] = Field(default=BudgetStatus.PENDING.value)
+    availability: str = Field(default=BudgetAvailability.AVAILABLE.value)
     gross_amount: Decimal = Field(sa_column=Column(Numeric(12, 2)))
     amount_remaining: Decimal = Field(sa_column=Column(Numeric(12, 2)))
     title: str = Field(...)
@@ -46,6 +48,11 @@ class Budget(SQLModel, table=True):
         back_populates="approved_budgets", sa_relationship_kwargs={"foreign_keys": "[Budget.approver_uid]"}
     )
     expenses: List["Expenses"] = Relationship(back_populates="budget")
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.amount_remaining is None and self.gross_amount is not None:
+            self.amount_remaining = self.gross_amount
 
     def __repr__(self) -> str:
         return f"<Budget: {self.model_dump()}>"
