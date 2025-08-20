@@ -6,12 +6,12 @@ from pydantic import BaseModel, field_validator
 from src.features.config import DBModel
 
 
-class ServiceStatus(StrEnum):
+class ExpCategoryStatus(StrEnum):
     ACTIVE = "ACTIVE"
     IN_ACTIVE = "IN_ACTIVE"
 
 
-class CreateService(BaseModel):
+class CreateExpCategory(BaseModel):
     name: str
 
     @field_validator("name")
@@ -20,9 +20,9 @@ class CreateService(BaseModel):
         return v.lower().strip()
 
 
-class UpdateService(BaseModel):
+class UpdateExpCategory(BaseModel):
     name: Optional[str] = None
-    status: Optional[ServiceStatus] = None
+    status: Optional[ExpCategoryStatus] = None
 
     @field_validator("name")
     @classmethod
@@ -30,7 +30,7 @@ class UpdateService(BaseModel):
         return v.lower().strip()
 
 
-class ServiceResponse(DBModel):
+class ExpCategoryResponse(DBModel):
     id: int
     name: str
-    status: ServiceStatus
+    status: ExpCategoryStatus

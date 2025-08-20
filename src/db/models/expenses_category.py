@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
+from src.features.expenses_category.schemas import ExpCategoryStatus
+
 if TYPE_CHECKING:
     from src.db.models.expenses import Expenses
 
@@ -24,7 +26,7 @@ class ExpensesCategory(SQLModel, table=True):
         ),
     )
     name: str = Field(...)
-    status: str = Field(...)
+    status: Optional[str] = Field(default=ExpCategoryStatus.ACTIVE.value)
 
     # relationship
     expenses: List["Expenses"] = Relationship(back_populates="expenses_category")

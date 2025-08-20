@@ -107,6 +107,18 @@ class ServiceExists(AppException):
     pass
 
 
+class ExpCategoryNotFound(AppException):
+    """This handles non existing expense category"""
+
+    pass
+
+
+class ExpCategoryExists(AppException):
+    """This handles already existing expense category in the database"""
+
+    pass
+
+
 def create_exception_handler(
     status_code: int, extra_content: Dict[str, Any] = None
 ) -> Callable[[Request, Exception], JSONResponse]:
@@ -181,6 +193,14 @@ def register_exceptions(app: FastAPI):
     )
     app.add_exception_handler(
         ServiceExists,
+        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Service already exists."}),
+    )
+    app.add_exception_handler(
+        ExpCategoryNotFound,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Service not found."}),
+    )
+    app.add_exception_handler(
+        ExpCategoryExists,
         create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Service already exists."}),
     )
 
