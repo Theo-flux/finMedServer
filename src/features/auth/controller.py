@@ -7,7 +7,7 @@ from src.db.redis import add_jti_to_block_list
 from src.features.departments.controller import DeptController
 from src.features.roles.controller import RoleController
 from src.features.users.controller import UserController
-from src.features.users.schemas import CreateUserModel, LoginUserModel
+from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResponseModel
 from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import InActiveDept, InActiveRole, UserEmailExists, UserNotFound, WrongCredentials
 
@@ -29,18 +29,8 @@ class AuthController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[TokenUserModel](
-                data=TokenUserModel.model_validate(
-                    {
-                        "id": user.id,
-                        "uid": user.uid,
-                        "first_name": user.first_name,
-                        "last_name": user.last_name,
-                        "avatar": user.avatar,
-                        "email": user.email,
-                        "phone_number": user.phone_number,
-                    }
-                ).model_dump(),
+            content=ServerRespModel[UserResponseModel](
+                data=UserResponseModel.model_validate(user).model_dump(),
                 message="user profile retrieved",
             ).model_dump(mode="json"),
         )
@@ -95,11 +85,13 @@ class AuthController:
                 {
                     "id": user.id,
                     "uid": user.uid,
+                    "staff_no": user.staff_no,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
-                    "avatar": user.avatar,
                     "email": user.email,
-                    "phone_number": user.phone_number,
+                    "status": user.status,
+                    "role_uid": user.role_uid,
+                    "department_uid": user.department_uid,
                 }
             )
 

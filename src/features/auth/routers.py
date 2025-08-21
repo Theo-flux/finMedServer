@@ -2,12 +2,12 @@ from fastapi import APIRouter, Body, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
-from src.features.users.schemas import CreateUserModel, LoginUserModel
+from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResponseModel
 from src.misc.schemas import ServerRespModel
 
 from .controller import AuthController
 from .dependencies import AccessTokenBearer, RefreshTokenBearer
-from .schemas import ChangePwdModel, LoginResModel, TokenUserModel
+from .schemas import ChangePwdModel, LoginResModel
 
 auth_router = APIRouter()
 auth_controller = AuthController()
@@ -34,7 +34,7 @@ async def register_user(user: CreateUserModel = Body(...), session: AsyncSession
 @auth_router.get(
     "/profile",
     status_code=status.HTTP_200_OK,
-    response_model=ServerRespModel[TokenUserModel],
+    response_model=ServerRespModel[UserResponseModel],
 )
 async def get_current_user_profile(
     token_payload: dict = Depends(AccessTokenBearer()),

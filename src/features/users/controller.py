@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -19,7 +20,11 @@ class UserController:
         await session.exec(statement)
 
     async def get_user_by_email(self, email: str, session: AsyncSession):
-        statement = select(User).where(User.email == email.lower())
+        statement = (
+            select(User)
+            .options(selectinload(User.department), selectinload(User.role))
+            .where(User.email == email.lower())
+        )
         result = await session.exec(statement=statement)
         user = result.first()
 

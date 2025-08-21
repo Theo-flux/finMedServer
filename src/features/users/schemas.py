@@ -56,6 +56,7 @@ class UserResponseModel(DBModel):
     last_name: str
     avatar: Optional[str]
     email: str
+    status: str
     phone_number: Optional[str]
     role: RoleResponseModel
     department: DeptResponseModel

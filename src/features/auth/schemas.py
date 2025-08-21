@@ -54,12 +54,14 @@ class LoginResModel(TokenModel):
 class TokenUserModel(BaseModel):
     id: int
     uid: uuid.UUID
+    staff_no: str
     first_name: str
     last_name: str
-    avatar: Optional[str]
     email: str
-    phone_number: str
+    status: str
+    role_uid: uuid.UUID
+    department_uid: uuid.UUID
 
-    @field_serializer("uid")
-    def serialize_uid(self, value: uuid.UUID, _info):
+    @field_serializer("uid", "role_uid", "department_uid")
+    def serialize_uuid(self, value: uuid.UUID, _info):
         return str(value)
