@@ -6,7 +6,7 @@ from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResp
 from src.misc.schemas import ServerRespModel
 
 from .controller import AuthController
-from .dependencies import AccessTokenBearer, RefreshTokenBearer
+from .dependencies import AccessTokenBearer, RefreshTokenBearer, RoleBasedTokenBearer
 from .schemas import ChangePwdModel, LoginResModel
 
 auth_router = APIRouter()
@@ -27,7 +27,11 @@ async def login_user(login_data: LoginUserModel = Body(...), session: AsyncSessi
     status_code=status.HTTP_201_CREATED,
     response_model=ServerRespModel[bool],
 )
-async def register_user(user: CreateUserModel = Body(...), session: AsyncSession = Depends(get_session)):
+async def register_user(
+    user: CreateUserModel = Body(...),
+    _: dict = Depends(RoleBasedTokenBearer(["admin"])),
+    session: AsyncSession = Depends(get_session),
+):
     return await auth_controller.create_user(user, session)
 
 

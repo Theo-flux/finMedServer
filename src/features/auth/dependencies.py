@@ -2,9 +2,9 @@ from typing import List, Optional, Union
 
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlmodel import Session, select
+from sqlmodel import select
 
-from src.db.main import get_session
+from src.db.main import AsyncSessionMaker
 from src.db.models.roles import Role
 from src.db.redis import token_in_block_list
 from src.features.auth.authentication import Authentication
@@ -44,27 +44,27 @@ class TokenBearer(HTTPBearer):
         if await token_in_block_list(token_payload["jti"]):
             raise InvalidToken()
 
-        self.verify_token_data(token_payload)
+        await self.verify_token_data(token_payload)
 
         return token_payload
 
-    def verify_token_data(self, token_payload) -> None:
+    async def verify_token_data(self, token_payload) -> None:
         raise NotImplementedError("Please override this method in child classes.")
 
 
 class AccessTokenBearer(TokenBearer):
-    def verify_token_data(self, token_payload):
+    async def verify_token_data(self, token_payload):
         if token_payload and token_payload["refresh"]:
             raise AccessTokenRequired()
 
 
 class RefreshTokenBearer(TokenBearer):
-    def verify_token_data(self, token_payload):
+    async def verify_token_data(self, token_payload):
         if token_payload and not token_payload["refresh"]:
             raise RefreshTokenRequired()
 
 
-class RoleBasedTokenBearer(TokenBearer):
+class RoleBasedTokenBearer(AccessTokenBearer):
     def __init__(self, required_roles: Union[str, List[str]], auto_error: bool = True, check_role_status: bool = True):
         super().__init__(auto_error=auto_error)
         if isinstance(required_roles, str):
@@ -74,17 +74,17 @@ class RoleBasedTokenBearer(TokenBearer):
 
         self.check_role_status = check_role_status
 
-    def get_active_roles_from_db(self, role_names: List[str]):
+    async def get_active_roles_from_db(self, role_names: List[str]):
         if not role_names or not self.check_role_status:
             return role_names
 
-        with Session(get_session()) as session:
+        async with AsyncSessionMaker() as session:
             statement = select(Role).where(Role.name.in_(role_names), Role.status == RoleStatus.ACTIVE.value)
-            active_roles = session.exec(statement=statement).all()
+            active_roles = await session.exec(statement=statement)
 
             return [role.name for role in active_roles]
 
-    def verify_token_data(self, token_payload):
+    async def verify_token_data(self, token_payload):
         if token_payload and token_payload["refresh"]:
             raise AccessTokenRequired()
 
@@ -94,22 +94,22 @@ class RoleBasedTokenBearer(TokenBearer):
         active_required_roles = self.required_roles
 
         if self.check_role_status:
-            valid_required_roles = self.get_active_roles_from_db(self.required_roles)
+            valid_required_roles = await self.get_active_roles_from_db(self.required_roles)
             if not valid_required_roles:
                 raise RoleNotFound(f"None of the required roles {self.required_roles} are active in the system")
 
             active_required_roles = valid_required_roles
 
-        role_uid = token_payload["user"]["role"]
+        role_uid = token_payload["user"]["role_uid"]
         if not role_uid:
             raise RoleNotFound()
 
-        with Session(get_session()) as session:
-            role = RoleController().get_role_by_uid(role_uid, session)
+        async with AsyncSessionMaker() as session:
+            role = await RoleController().get_role_by_uid(role_uid, session)
 
             if role is None:
                 raise RoleNotFound()
-
+            print(role)
             if role.name not in active_required_roles:
                 raise InsufficientPermissions()
 
