@@ -78,7 +78,7 @@ class RoleExists(AppException):
 
 
 class RoleNotFound(AppException):
-    """This handles non existing role"""
+    """Raised when a required role doesn't exist in database"""
 
     pass
 
@@ -139,6 +139,12 @@ class ExpCategoryExists(AppException):
 
 class InActiveExpCategory(AppException):
     """This handles inactive expense category"""
+
+    pass
+
+
+class InsufficientPermissions(Exception):
+    """Raised when user doesn't have required role/permissions"""
 
     pass
 
@@ -242,6 +248,12 @@ def register_exceptions(app: FastAPI):
     app.add_exception_handler(
         InActiveExpCategory,
         create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Exp. catgeory is inactive."}),
+    )
+    app.add_exception_handler(
+        InsufficientPermissions,
+        create_exception_handler(
+            status.HTTP_403_FORBIDDEN, {"message": "You don't have permission to access this resource."}
+        ),
     )
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)

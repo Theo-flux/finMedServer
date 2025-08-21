@@ -1,11 +1,22 @@
-from typing import Optional
+from typing import List, Optional, Union
 
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlmodel import Session, select
 
+from src.db.main import get_session
+from src.db.models.roles import Role
 from src.db.redis import token_in_block_list
 from src.features.auth.authentication import Authentication
-from src.utils.exceptions import AccessTokenRequired, InvalidToken, RefreshTokenRequired
+from src.features.roles.controller import RoleController
+from src.features.roles.schemas import RoleStatus
+from src.utils.exceptions import (
+    AccessTokenRequired,
+    InsufficientPermissions,
+    InvalidToken,
+    RefreshTokenRequired,
+    RoleNotFound,
+)
 
 
 class TokenBearer(HTTPBearer):
@@ -51,3 +62,58 @@ class RefreshTokenBearer(TokenBearer):
     def verify_token_data(self, token_payload):
         if token_payload and not token_payload["refresh"]:
             raise RefreshTokenRequired()
+
+
+class RoleBasedTokenBearer(TokenBearer):
+    def __init__(self, required_roles: Union[str, List[str]], auto_error: bool = True, check_role_status: bool = True):
+        super().__init__(auto_error=auto_error)
+        if isinstance(required_roles, str):
+            self.required_roles = [required_roles]
+        else:
+            self.required_roles = required_roles or []
+
+        self.check_role_status = check_role_status
+
+    def get_active_roles_from_db(self, role_names: List[str]):
+        if not role_names or not self.check_role_status:
+            return role_names
+
+        with Session(get_session()) as session:
+            statement = select(Role).where(Role.name.in_(role_names), Role.status == RoleStatus.ACTIVE.value)
+            active_roles = session.exec(statement=statement).all()
+
+            return [role.name for role in active_roles]
+
+    def verify_token_data(self, token_payload):
+        if token_payload and token_payload["refresh"]:
+            raise AccessTokenRequired()
+
+        if not self.required_roles:
+            return
+
+        active_required_roles = self.required_roles
+
+        if self.check_role_status:
+            valid_required_roles = self.get_active_roles_from_db(self.required_roles)
+            if not valid_required_roles:
+                raise RoleNotFound(f"None of the required roles {self.required_roles} are active in the system")
+
+            active_required_roles = valid_required_roles
+
+        role_uid = token_payload["user"]["role"]
+        if not role_uid:
+            raise RoleNotFound()
+
+        with Session(get_session()) as session:
+            role = RoleController().get_role_by_uid(role_uid, session)
+
+            if role is None:
+                raise RoleNotFound()
+
+            if role.name not in active_required_roles:
+                raise InsufficientPermissions()
+
+
+class AdminTokenBearer(RoleBasedTokenBearer):
+    def __init__(self, auto_error=True, check_role_status=True):
+        super().__init__(required_roles=["admin"], auto_error=auto_error, check_role_status=check_role_status)
