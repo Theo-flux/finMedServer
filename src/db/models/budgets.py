@@ -18,7 +18,7 @@ class Budget(SQLModel, table=True):
 
     id: Optional[int] = Field(primary_key=True, default=None)
     uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
-    serial_no: str = Field(index=True, unique=True)
+    serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
     created_at: datetime = Field(sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)))
     updated_at: datetime = Field(
         sa_column=Column(
@@ -32,6 +32,7 @@ class Budget(SQLModel, table=True):
     department_uid: uuid.UUID = Field(foreign_key="departments.uid")
     user_uid: uuid.UUID = Field(foreign_key="users.uid")
     approver_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
+    assignee_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
     status: Optional[str] = Field(default=BudgetStatus.PENDING.value)
     availability: str = Field(default=BudgetAvailability.AVAILABLE.value)
     gross_amount: Decimal = Field(sa_column=Column(Numeric(12, 2)))
@@ -46,6 +47,9 @@ class Budget(SQLModel, table=True):
     )
     approver: "User" = Relationship(
         back_populates="approved_budgets", sa_relationship_kwargs={"foreign_keys": "[Budget.approver_uid]"}
+    )
+    assignee: "User" = Relationship(
+        back_populates="assigned_budgets", sa_relationship_kwargs={"foreign_keys": "[Budget.assignee_uid]"}
     )
     expenses: List["Expenses"] = Relationship(back_populates="budget")
 

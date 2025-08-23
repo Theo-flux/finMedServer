@@ -12,7 +12,8 @@ from src.utils.validators import is_email
 class UserController:
     async def generate_staff_no(self, dept: str, user_uid: uuid.UUID, session: AsyncSession):
         user = await self.get_user_by_uid(user_uid, session)
-        dept_prefix = dept[:3].upper()
+
+        dept_prefix = dept.upper().ljust(3, "D")[:3]
         current_year_last_two_digits = str(datetime.now(timezone.utc).year)[2:]
         staff_no = f"{dept_prefix}-{current_year_last_two_digits}-{str(user.id).zfill(4)}"
 

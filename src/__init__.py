@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from src.db.main import init_db
 from src.features.auth.routers import auth_router
+from src.features.budgets.routers import budget_router
 from src.features.departments.routers import dept_router
 from src.features.expenses_category.routers import category_router
 from src.features.roles.routers import role_router
@@ -49,3 +50,4 @@ app.include_router(role_router, prefix=f"{api_version}/roles", tags=["role"])
 app.include_router(dept_router, prefix=f"{api_version}/depts", tags=["department"])
 app.include_router(service_router, prefix=f"{api_version}/services", tags=["services"])
 app.include_router(category_router, prefix=f"{api_version}/categories", tags=["Categories"])
+app.include_router(budget_router, prefix=f"{api_version}/budgets", tags=["Budgets"])

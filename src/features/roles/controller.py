@@ -39,6 +39,16 @@ class RoleController:
 
         return self.is_role_active(role)
 
+    async def is_role_admin(self, role_uid: uuid.UUID, session: AsyncSession):
+        role_by_uid = self.get_role_by_uid(role_uid, session)
+
+        if role_by_uid is None:
+            False
+
+        role = RoleResponseModel.model_validate(role_by_uid)
+
+        return True if role.name == "admin" else False
+
     async def create_role(self, role: CreateRole, session: AsyncSession):
         data = role.model_dump()
 
@@ -79,8 +89,6 @@ class RoleController:
         statement = select(Role)
         result = await session.exec(statement=statement)
         roles = result.all()
-
-        print("result", result)
 
         role_responses = [RoleResponseModel.model_validate(role, from_attributes=True) for role in roles]
 

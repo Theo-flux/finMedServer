@@ -55,6 +55,9 @@ class User(SQLModel, table=True):
     approved_budgets: List["Budget"] = Relationship(
         back_populates="user", sa_relationship_kwargs={"foreign_keys": "[Budget.approver_uid]"}
     )
+    assigned_budgets: List["Budget"] = Relationship(
+        back_populates="user", sa_relationship_kwargs={"foreign_keys": "[Budget.assignee_uid]"}
+    )
     created_expenses: List["Expenses"] = Relationship(back_populates="user")
 
     def __repr__(self) -> str:

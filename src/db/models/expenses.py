@@ -16,7 +16,7 @@ class Expenses(SQLModel, table=True):
 
     id: Optional[int] = Field(primary_key=True, default=None)
     uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
-    serial_no: str = Field(index=True, unique=True)
+    serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
     )

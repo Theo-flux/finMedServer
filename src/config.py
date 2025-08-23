@@ -19,6 +19,8 @@ class Settings(BaseSettings):
 
     EMAIL_SALT: str
 
+    DEFAULT_PAGE_LIMIT: int = 30
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

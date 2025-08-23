@@ -17,6 +17,12 @@ class InvalidToken(AppException):
     pass
 
 
+class NotFound(AppException):
+    """Raised when a required resource doesn't exist in database"""
+
+    pass
+
+
 class UserEmailExists(AppException):
     """This handles user email exists"""
 
@@ -168,6 +174,10 @@ def register_exceptions(app: FastAPI):
             status.HTTP_403_FORBIDDEN,
             {"message": "This token is invalid or expired. Pls get a new token."},
         ),
+    )
+    app.add_exception_handler(
+        NotFound,
+        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Resource doesn't exist."}),
     )
     app.add_exception_handler(
         UserNotFound,
