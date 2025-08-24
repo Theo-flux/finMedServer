@@ -33,7 +33,7 @@ class Expenses(SQLModel, table=True):
     amount_spent: Decimal = Field(sa_column=Column(Numeric(12, 2)))
     title: str = Field(...)
     short_description: str = Field(...)
-    note: str = Field(...)
+    note: Optional[str] = Field(default="", nullable=True)
 
     # relationships
     user: "User" = Relationship(back_populates="created_expenses")

@@ -14,13 +14,6 @@ from src.utils.exceptions import DeptExists, DeptNotFound
 
 
 class DeptController:
-    def generate_staff_no(self, dept: str):
-        # TODO:
-        # 1. Format (<first three letters of dept.>-<year>-<id padded with two leading zeros.)
-        # 2. Ensure the department exists and the department status is active.
-        # 3. Ensure to generate a unique staff no.
-        pass
-
     async def get_dept_by_uid(self, dept_uid: uuid.UUID, session: AsyncSession):
         statement = select(Department).where(Department.uid == dept_uid)
         result = await session.exec(statement=statement)
