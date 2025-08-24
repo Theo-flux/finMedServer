@@ -19,7 +19,10 @@ class Settings(BaseSettings):
 
     EMAIL_SALT: str
 
+    DEFAULT_PAGE_MIN_LIMIT: int = 1
+    DEFAULT_PAGE_MAX_LIMIT: int = 100
     DEFAULT_PAGE_LIMIT: int = 30
+    DEFAULT_PAGE_OFFSET: int = 0
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

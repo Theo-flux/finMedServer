@@ -60,10 +60,6 @@ class BudgetResponseModel(DBModel):
     amount_remaining: Decimal
     title: str
     short_description: str
-    department: DeptResponseModel
-    user: BudgetUserResponseModel
-    approver: Optional[BudgetUserResponseModel] = None
-    assignee: Optional[BudgetUserResponseModel] = None
 
     @field_serializer("received_at", "approved_at")
     def serialize_bdt(self, value: datetime, _info):
@@ -78,3 +74,10 @@ class BudgetResponseModel(DBModel):
     @field_serializer("gross_amount", "amount_remaining")
     def serialize_decimal(self, value: Decimal, _info):
         return float(value)
+
+
+class SingleBudgetResponseModel(BudgetResponseModel):
+    department: DeptResponseModel
+    user: BudgetUserResponseModel
+    approver: Optional[BudgetUserResponseModel] = None
+    assignee: Optional[BudgetUserResponseModel] = None

@@ -1,20 +1,28 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TypeVar
 
 from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
-from sqlmodel import select, update
+from sqlalchemy.sql.selectable import Select
+from sqlmodel import func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.budgets import Budget
-from src.features.budgets.schemas import BudgetResponseModel, CreateBudgetModel, EditBudgetModel
+from src.features.budgets.schemas import (
+    BudgetResponseModel,
+    CreateBudgetModel,
+    EditBudgetModel,
+    SingleBudgetResponseModel,
+)
 from src.features.roles.controller import RoleController
-from src.misc.schemas import ServerRespModel
+from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no
-from src.utils.exceptions import InsufficientPermissions, NotFound
+from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
 
+T = TypeVar("T")
+SelectOfScalar = Select[T]
 role_controller = RoleController()
 
 
@@ -48,12 +56,11 @@ class BudgetControllers:
         if budget is None:
             raise NotFound("Budget not found")
 
-        budget_response = BudgetResponseModel.model_validate(budget)
-        print(budget_response.model_dump_json())
+        budget_response = SingleBudgetResponseModel.model_validate(budget)
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[BudgetResponseModel](
+            content=ServerRespModel[SingleBudgetResponseModel](
                 data=budget_response, message="Budget retrieved!"
             ).model_dump(),
         )
@@ -103,20 +110,76 @@ class BudgetControllers:
             content=ServerRespModel[bool](data=True, message="Budget updated!").model_dump(),
         )
 
-    async def get_my_budget(
+    async def get_budgets(
+        self,
+        limit: int,
+        query: SelectOfScalar[Budget],
+        session: AsyncSession,
+        q: Optional[str] = None,
+        offset: Optional[int] = None,
+    ):
+        if q:
+            search_term = f"%{q}%"
+            query = query.where(
+                Budget.title.ilike(search_term)
+                | Budget.short_description.ilike(search_term)
+                | Budget.serial_no.ilike(search_term)
+            )
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total = await session.scalar(count_query)
+
+        query = query.order_by(Budget.created_at.desc()).offset(offset).limit(limit)
+
+        results = await session.exec(query)
+        budgets = results.all()
+        budgets_response = [BudgetResponseModel.model_validate(budget) for budget in budgets]
+        current_page = (offset // limit) + 1
+        total_pages = (total + limit - 1) // limit
+        paginated_budget = PaginatedResponseModel.model_validate(
+            {
+                "items": budgets_response,
+                "pagination": PaginationModel(
+                    total=total, current_page=current_page, limit=limit, total_pages=total_pages
+                ),
+            }
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[PaginatedResponseModel[BudgetResponseModel]](
+                data=paginated_budget, message="Budgets retrieved successfully"
+            ).model_dump(),
+        )
+
+    async def get_user_budget(
         self,
         limit: int,
         token_payload: dict,
         session: AsyncSession,
-        next_cursor: Optional[int] = None,
+        q: Optional[str] = None,
+        offset: Optional[int] = None,
     ):
-        pass
+        user_uid = token_payload["user"]["uid"]
+        if not user_uid:
+            raise InvalidToken()
+
+        query = select(Budget).where(Budget.user_uid == user_uid)
+
+        return await self.get_budgets(q=q, limit=limit, offset=offset, query=query, session=session)
 
     async def get_assigned_budget(
         self,
         limit: int,
         token_payload: dict,
         session: AsyncSession,
-        next_cursor: Optional[int] = None,
+        q: Optional[str] = None,
+        offset: Optional[int] = None,
     ):
-        pass
+        user_uid = token_payload["user"]["uid"]
+        if not user_uid:
+            raise InvalidToken()
+
+        query = select(Budget).where(Budget.assignee_uid == user_uid)
+
+        return await self.get_budgets(q=q, limit=limit, offset=offset, query=query, session=session)

@@ -15,32 +15,6 @@ budget_router = APIRouter()
 budget_controller = BudgetControllers()
 
 
-@budget_router.get("/{budget_uid}")
-async def get_budget_by_uid(
-    budget_uid: uuid.UUID,
-    _: dict = Depends(AccessTokenBearer()),
-    session: AsyncSession = Depends(get_session),
-):
-    return await budget_controller.single_budget(budget_uid=budget_uid, session=session)
-
-
-@budget_router.get("/my_budgets")
-async def get_user_budgets(
-    limit: Optional[int] = Query(default=Config.DEFAULT_PAGE_LIMIT),
-    next_cursor: Optional[int] = Query(default=None),
-    token_payload: dict = Depends(AccessTokenBearer()),
-    session: AsyncSession = Depends(get_session),
-):
-    return await budget_controller.get_my_budget(
-        limit=limit, next_cursor=next_cursor, token_payload=token_payload, session=session
-    )
-
-
-@budget_router.get("/assigned")
-async def get_assigned_budgets(_: dict = Depends(AccessTokenBearer()), session: AsyncSession = Depends(get_session)):
-    pass
-
-
 @budget_router.post("", response_model=ServerRespModel[bool])
 async def create_budget(
     data: CreateBudgetModel = Body(...),
@@ -50,9 +24,48 @@ async def create_budget(
     return await budget_controller.create_budget(token_payload=token_payload, data=data, session=session)
 
 
+@budget_router.get("/user_budgets")
+async def get_user_budgets(
+    q: Optional[str] = Query(default=None),
+    limit: Optional[int] = Query(
+        default=Config.DEFAULT_PAGE_LIMIT, ge=Config.DEFAULT_PAGE_MIN_LIMIT, le=Config.DEFAULT_PAGE_MAX_LIMIT
+    ),
+    offset: Optional[int] = Query(default=Config.DEFAULT_PAGE_OFFSET, ge=Config.DEFAULT_PAGE_OFFSET),
+    token_payload: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.get_user_budget(
+        q=q, limit=limit, offset=offset, token_payload=token_payload, session=session
+    )
+
+
+@budget_router.get("/user_assigned_budgets")
+async def get_assigned_budgets(
+    q: Optional[str] = Query(default=None),
+    limit: Optional[int] = Query(
+        default=Config.DEFAULT_PAGE_LIMIT, ge=Config.DEFAULT_PAGE_MIN_LIMIT, le=Config.DEFAULT_PAGE_MAX_LIMIT
+    ),
+    offset: Optional[int] = Query(default=Config.DEFAULT_PAGE_OFFSET, ge=Config.DEFAULT_PAGE_OFFSET),
+    token_payload: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.get_assigned_budget(
+        q=q, limit=limit, offset=offset, token_payload=token_payload, session=session
+    )
+
+
+@budget_router.get("/{budget_uid}")
+async def get_budget_by_uid(
+    budget_uid: uuid.UUID,
+    _: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.single_budget(budget_uid=budget_uid, session=session)
+
+
 @budget_router.patch("/{budget_uid}", response_model=ServerRespModel[bool])
 async def update_budget(
-    budget_uid: str,
+    budget_uid: uuid.UUID,
     data: EditBudgetModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),

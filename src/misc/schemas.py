@@ -13,18 +13,16 @@ class ServerRespModel(BaseModel, Generic[T]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-# Pagination metadata model
-class Pagination(BaseModel):
+class PaginationModel(BaseModel):
     total: int
-    page: int
+    current_page: int
     limit: int
     total_pages: int
 
 
-# Combined response model
-class PaginatedResponse(BaseModel, Generic[T]):
-    result: list[T]
-    pagination: Pagination
+class PaginatedResponseModel(BaseModel, Generic[T]):
+    items: list[T]
+    pagination: PaginationModel
 
 
 class ServerErrorModel(BaseModel, Generic[T]):
