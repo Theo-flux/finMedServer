@@ -1,11 +1,10 @@
 import uuid
 from datetime import datetime
-from typing import Optional, TypeVar
+from typing import Optional
 
 from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
-from sqlalchemy.sql.selectable import Select
 from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -16,17 +15,16 @@ from src.features.budgets.schemas import (
     EditBudgetModel,
     SingleBudgetResponseModel,
 )
+from src.features.config import SelectOfScalar
 from src.features.roles.controller import RoleController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no
 from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
 
-T = TypeVar("T")
-SelectOfScalar = Select[T]
 role_controller = RoleController()
 
 
-class BudgetControllers:
+class BudgetController:
     async def generate_budget_serial_no(self, budget_uid: uuid.UUID, session: AsyncSession):
         budget = await self.get_budget_by_uid(budget_uid, session)
         serial_no = build_serial_no("Budget", budget.id)

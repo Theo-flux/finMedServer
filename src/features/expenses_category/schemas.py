@@ -30,7 +30,7 @@ class UpdateExpCategory(BaseModel):
         return v.lower().strip()
 
 
-class ExpCategoryResponse(DBModel):
+class ExpCategoryResponseModel(DBModel):
     id: int
     name: str
     status: ExpCategoryStatus

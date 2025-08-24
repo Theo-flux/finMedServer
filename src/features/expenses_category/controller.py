@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models.expenses_category import ExpensesCategory
 from src.features.expenses_category.schemas import (
     CreateExpCategory,
-    ExpCategoryResponse,
+    ExpCategoryResponseModel,
     ExpCategoryStatus,
     UpdateExpCategory,
 )
@@ -88,12 +88,12 @@ class ExpCategoryController:
         print("result", result)
 
         exp_category_responses = [
-            ExpCategoryResponse.model_validate(category, from_attributes=True) for category in categories
+            ExpCategoryResponseModel.model_validate(category, from_attributes=True) for category in categories
         ]
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[List[ExpCategoryResponse]](
+            content=ServerRespModel[List[ExpCategoryResponseModel]](
                 data=exp_category_responses, message="Expenses Category retrieved successfully!"
             ).model_dump(),
         )
@@ -104,10 +104,10 @@ class ExpCategoryController:
         if category is None:
             raise ExpCategoryNotFound()
 
-        service_response = ExpCategoryResponse.model_validate(category)
+        service_response = ExpCategoryResponseModel.model_validate(category)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[ExpCategoryResponse](
+            content=ServerRespModel[ExpCategoryResponseModel](
                 data=service_response, message="Expenses Category retrieved successfully!"
             ).model_dump(),
         )

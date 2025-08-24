@@ -7,12 +7,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
-from src.features.budgets.controller import BudgetControllers
+from src.features.budgets.controller import BudgetController
 from src.features.budgets.schemas import CreateBudgetModel, EditBudgetModel
 from src.misc.schemas import ServerRespModel
 
 budget_router = APIRouter()
-budget_controller = BudgetControllers()
+budget_controller = BudgetController()
 
 
 @budget_router.post("", response_model=ServerRespModel[bool])

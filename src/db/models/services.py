@@ -7,7 +7,7 @@ from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 from src.features.services.schemas import ServiceStatus
 
 if TYPE_CHECKING:
-    from src.db.models.bills import Bill
+    from src.db.models.invoices import Invoice
 
 
 class Service(SQLModel, table=True):
@@ -34,7 +34,7 @@ class Service(SQLModel, table=True):
     )
 
     # relationship
-    bills: List["Bill"] = Relationship(back_populates="service")
+    invoices: List["Invoice"] = Relationship(back_populates="service")
 
     def __repr__(self) -> str:
         return f"<Service: {self.model_dump()}>"

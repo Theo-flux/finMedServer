@@ -7,8 +7,8 @@ from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 from src.features.departments.schemas import DepartmentStatus
 
 if TYPE_CHECKING:
-    from src.db.models.bills import Bill
     from src.db.models.budgets import Budget
+    from src.db.models.invoices import Invoice
     from src.db.models.users import User
 
 
@@ -32,7 +32,7 @@ class Department(SQLModel, table=True):
 
     # relationships
     users: List["User"] = Relationship(back_populates="department")
-    earnings: List["Bill"] = Relationship(back_populates="department")
+    invoices: List["Invoice"] = Relationship(back_populates="department")
     budgets: List["Budget"] = Relationship(back_populates="department")
 
     def __repr__(self) -> str:

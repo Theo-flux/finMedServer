@@ -10,10 +10,11 @@ if TYPE_CHECKING:
     from src.db.models.patients import Patient
     from src.db.models.payments import Payment
     from src.db.models.services import Service
+    from src.db.models.users import User
 
 
-class Bill(SQLModel, table=True):
-    __tablename__ = "bills"
+class Invoice(SQLModel, table=True):
+    __tablename__ = "invoices"
 
     id: Optional[int] = Field(primary_key=True, default=None)
     uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
@@ -28,11 +29,12 @@ class Bill(SQLModel, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    billed_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
+    invoiced_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
     service_uid: uuid.UUID = Field(foreign_key="services.uid")
     patient_uid: Optional[uuid.UUID] = Field(foreign_key="patients.uid")
+    user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
     department_uid: uuid.UUID = Field(foreign_key="departments.uid")
-    bill_type: str = Field(...)
+    invoice_type: str = Field(...)
     name: str = Field(...)
     status: str = Field(...)
     gross_amount: Decimal = Field(sa_column=Column(Numeric(12, 2)))
@@ -40,10 +42,11 @@ class Bill(SQLModel, table=True):
     net_amount_due: Decimal = Field(sa_column=Column(Numeric(12, 2)))
 
     # relationships
-    service: "Service" = Relationship(back_populates="bills")
-    patient: "Patient" = Relationship(back_populates="bills")
-    department: "Department" = Relationship(back_populates="earnings")
-    payments: "Payment" = Relationship(back_populates="bill")
+    user: "User" = Relationship(back_populates="invoices")
+    service: "Service" = Relationship(back_populates="invoices")
+    patient: "Patient" = Relationship(back_populates="invoices")
+    department: "Department" = Relationship(back_populates="invoices")
+    payments: "Payment" = Relationship(back_populates="invoice")
 
     def __repr__(self) -> str:
-        return f"<Bills: {self.model_dump()}>"
+        return f"<Invoives: {self.model_dump()}>"

@@ -1,7 +1,12 @@
 import uuid
 from datetime import datetime
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict, field_serializer
+from sqlalchemy.sql.selectable import Select
+
+T = TypeVar("T")
+SelectOfScalar = Select[T]
 
 
 class DBModel(BaseModel):

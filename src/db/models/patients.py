@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from src.db.models.bills import Bill
+    from src.db.models.invoices import Invoice
 
 
 class Patient(SQLModel, table=True):
@@ -30,7 +30,7 @@ class Patient(SQLModel, table=True):
     phone_number: Optional[str] = Field(default="")
 
     # relationships
-    bills: List["Bill"] = Relationship(back_populates="patient")
+    invoices: List["Invoice"] = Relationship(back_populates="patient")
 
     def __repr__(self) -> str:
         return f"<Patient: {self.model_dump()}>"

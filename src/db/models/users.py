@@ -5,14 +5,15 @@ from typing import TYPE_CHECKING, List, Optional
 from pydantic import EmailStr
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
-from src.db.models.roles import Role
 from src.features.users.schemas import UserStatus
 
 if TYPE_CHECKING:
     from src.db.models.budgets import Budget
     from src.db.models.departments import Department
     from src.db.models.expenses import Expenses
+    from src.db.models.invoices import Invoice
     from src.db.models.payments import Payment
+    from src.db.models.roles import Role
 
 
 class User(SQLModel, table=True):
@@ -48,6 +49,7 @@ class User(SQLModel, table=True):
     # relationship
     department: Optional["Department"] = Relationship(back_populates="users")
     role: "Role" = Relationship(back_populates="users")
+    invoices: List["Invoice"] = Relationship(back_populates="user")
     payments: List["Payment"] = Relationship(back_populates="user")
     created_budgets: List["Budget"] = Relationship(
         back_populates="user", sa_relationship_kwargs={"foreign_keys": "[Budget.user_uid]"}
