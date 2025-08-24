@@ -9,7 +9,7 @@ from src.features.roles.controller import RoleController
 from src.features.users.controller import UserController
 from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResponseModel
 from src.misc.schemas import ServerRespModel
-from src.utils.exceptions import InActiveDept, InActiveRole, UserEmailExists, UserNotFound, WrongCredentials
+from src.utils.exceptions import InActive, NotFound, UserEmailExists, WrongCredentials
 
 from .authentication import Authentication
 from .schemas import ChangePwdModel, TokenModel, TokenUserModel
@@ -25,7 +25,7 @@ class AuthController:
         user = await user_controller.get_user_by_email(user_email, session)
 
         if not user:
-            raise UserNotFound()
+            raise NotFound("User doesn't exist.")
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -61,7 +61,7 @@ class AuthController:
         user = await user_controller.get_user_by_email(email=data.email, session=session)
 
         if not user:
-            raise UserNotFound()
+            raise NotFound("User doesn't exist.")
 
         await user_controller.update_user(
             user=user,
@@ -78,7 +78,7 @@ class AuthController:
         user = await user_controller.get_user_by_email(login_data.email, session)
 
         if user is None:
-            raise UserNotFound()
+            raise NotFound("User doesn't exist.")
 
         if Authentication.verify_password(login_data.password, user.password):
             user_data = TokenUserModel.model_validate(
@@ -118,12 +118,12 @@ class AuthController:
             raise UserEmailExists()
 
         if await role_controller.role_exists(user.get("role_uid"), session) is False:
-            raise InActiveRole()
+            raise InActive("Role is inactive.")
 
         dept = await dept_controller.dept_exists(user.get("department_uid"), session)
 
         if dept is None:
-            raise InActiveDept()
+            raise InActive("Department is inactive.")
 
         user["password"] = Authentication.generate_password_hash(user["password"])
 

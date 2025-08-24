@@ -16,11 +16,13 @@ from src.features.expenses.schemas import (
     ExpensesResponseModel,
     SingleExpenseResponseModel,
 )
+from src.features.expenses_category.controller import ExpCategoryController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no
 from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
 
 budget_controller = BudgetController()
+category_controller = ExpCategoryController()
 
 
 class ExpensesController:
@@ -64,10 +66,17 @@ class ExpensesController:
     async def create_exp(self, token_payload: dict, data: CreateExpensesModel, session: AsyncSession):
         exp = data.model_dump()
 
-        budget = budget_controller.get_budget_by_uid(budget_uid=data.budget_uid, session=session)
+        budget = await budget_controller.get_budget_by_uid(budget_uid=data.budget_uid, session=session)
 
         if budget is None:
             raise NotFound("Budget not found!")
+
+        exp_cat = await category_controller.get_category_by_uid(
+            category_uid=data.expenses_category_uid, session=session
+        )
+
+        if exp_cat is None:
+            raise NotFound("Category not found!")
 
         exp["user_uid"] = token_payload["user"]["uid"]
 
@@ -94,7 +103,7 @@ class ExpensesController:
         if exp_to_update is None:
             raise NotFound("Expense doesn't exist")
 
-        if exp_to_update.user_uid is not token_payload["user"]["uid"]:
+        if str(exp_to_update.user_uid) != token_payload["user"]["uid"]:
             raise InsufficientPermissions("You don't have the permission to update this expense!")
 
         valid_attrs = data.model_dump(exclude_none=True)

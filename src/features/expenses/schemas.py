@@ -10,7 +10,7 @@ from src.features.expenses_category.schemas import ExpCategoryResponseModel
 
 
 class EditExpenseModel(BaseModel):
-    amount_spent: Optional[int] = None
+    amount_spent: Optional[int] = Field(gt=0, default=None)
     title: Optional[str] = None
     short_description: Optional[str] = None
     budget_uid: Optional[uuid.UUID] = None
@@ -18,7 +18,7 @@ class EditExpenseModel(BaseModel):
 
 
 class CreateExpensesModel(BaseModel):
-    amount_spent: int
+    amount_spent: int = Field(gt=0)
     title: str
     short_description: str
     note: Optional[str] = Field(default="")

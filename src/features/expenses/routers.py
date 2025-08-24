@@ -7,9 +7,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
-from src.features.budgets.schemas import EditBudgetModel
 from src.features.expenses.controller import ExpensesController
-from src.features.expenses.schemas import CreateExpensesModel, ExpensesResponseModel, SingleExpenseResponseModel
+from src.features.expenses.schemas import (
+    CreateExpensesModel,
+    EditExpenseModel,
+    ExpensesResponseModel,
+    SingleExpenseResponseModel,
+)
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 expense_router = APIRouter()
@@ -62,7 +66,7 @@ async def del_exp_by_uid(
 @expense_router.patch("/{exp_uid}", response_model=ServerRespModel[bool])
 async def update_exp(
     exp_uid: uuid.UUID,
-    data: EditBudgetModel = Body(...),
+    data: EditExpenseModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):

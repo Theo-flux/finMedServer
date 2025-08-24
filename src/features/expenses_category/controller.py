@@ -15,7 +15,7 @@ from src.features.expenses_category.schemas import (
     UpdateExpCategory,
 )
 from src.misc.schemas import ServerRespModel
-from src.utils.exceptions import DeptExists, DeptNotFound, ExpCategoryNotFound
+from src.utils.exceptions import NotFound, ResourceExists
 
 
 class ExpCategoryController:
@@ -48,7 +48,7 @@ class ExpCategoryController:
         data = category.model_dump()
 
         if await self.get_category_by_name(data.get("name"), session):
-            raise DeptExists()
+            raise ResourceExists("Department exists.")
 
         new_category = ExpensesCategory(**data)
 
@@ -64,7 +64,7 @@ class ExpCategoryController:
         exp_to_exp = await self.get_category_by_uid(category_uid, session)
 
         if exp_to_exp is None:
-            raise DeptNotFound()
+            raise NotFound("Department not found.")
 
         valid_attrs = data.model_dump(exclude_none=True)
 
@@ -102,7 +102,7 @@ class ExpCategoryController:
         category = await self.get_category_by_uid(category_uid, session)
 
         if category is None:
-            raise ExpCategoryNotFound()
+            raise NotFound("Expense category not found")
 
         service_response = ExpCategoryResponseModel.model_validate(category)
         return JSONResponse(

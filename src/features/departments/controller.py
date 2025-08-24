@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models.departments import Department
 from src.features.departments.schemas import CreateDept, DepartmentStatus, DeptResponseModel, UpdateDept
 from src.misc.schemas import ServerRespModel
-from src.utils.exceptions import DeptExists, DeptNotFound
+from src.utils.exceptions import NotFound, ResourceExists
 
 
 class DeptController:
@@ -44,7 +44,7 @@ class DeptController:
         data = dept.model_dump()
 
         if await self.get_dept_by_name(data.get("name"), session):
-            raise DeptExists()
+            raise ResourceExists("Department exists.")
 
         new_dept = Department(**data)
 
@@ -60,7 +60,7 @@ class DeptController:
         dept_to_update = await self.get_dept_by_uid(dept_uid, session)
 
         if dept_to_update is None:
-            raise DeptNotFound()
+            raise NotFound("Department not found.")
 
         valid_attrs = data.model_dump(exclude_none=True)
 
@@ -96,7 +96,7 @@ class DeptController:
         role = await self.get_dept_by_uid(dept_uid, session)
 
         if role is None:
-            raise DeptNotFound()
+            raise NotFound("Department not found.")
 
         role_response = DeptResponseModel.model_validate(role)
         return JSONResponse(

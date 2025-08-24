@@ -92,7 +92,7 @@ class BudgetController:
         if budget_to_update is None:
             raise NotFound("Budget doesn't exist")
 
-        if budget_to_update.user_uid is not token_payload["user"]["uid"]:
+        if str(budget_to_update.user_uid) != token_payload["user"]["uid"]:
             raise InsufficientPermissions("You don't have the permission to update this budget!")
 
         valid_attrs = data.model_dump(exclude_none=True)

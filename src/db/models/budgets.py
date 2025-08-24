@@ -51,7 +51,7 @@ class Budget(SQLModel, table=True):
     assignee: "User" = Relationship(
         back_populates="assigned_budgets", sa_relationship_kwargs={"foreign_keys": "[Budget.assignee_uid]"}
     )
-    expenses: List["Expenses"] = Relationship(back_populates="budget")
+    expenses: List["Expenses"] = Relationship(back_populates="budget", cascade_delete=True)
 
     def __init__(self, **data):
         super().__init__(**data)

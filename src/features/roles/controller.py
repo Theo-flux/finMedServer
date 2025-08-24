@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models.roles import Role
 from src.features.roles.schemas import CreateRole, RoleResponseModel, RoleStatus, UpdateRole
 from src.misc.schemas import ServerRespModel
-from src.utils.exceptions import RoleExists, RoleNotFound
+from src.utils.exceptions import NotFound, ResourceExists
 
 
 class RoleController:
@@ -53,7 +53,7 @@ class RoleController:
         data = role.model_dump()
 
         if await self.get_role_by_name(data.get("name"), session):
-            raise RoleExists()
+            raise ResourceExists("Role exists.")
 
         new_role = Role(**data)
 
@@ -69,7 +69,7 @@ class RoleController:
         role_to_update = await self.get_role_by_uid(role_uid, session)
 
         if role_to_update is None:
-            raise RoleNotFound()
+            raise NotFound("Role not found.")
 
         valid_attrs = data.model_dump(exclude_none=True)
 
@@ -103,7 +103,7 @@ class RoleController:
         role = await self.get_role_by_uid(role_uid, session)
 
         if role is None:
-            raise RoleNotFound()
+            raise NotFound("Role not found.")
 
         role_response = RoleResponseModel.model_validate(role)
         return JSONResponse(

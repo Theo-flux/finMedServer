@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models.services import Service
 from src.features.services.schemas import CreateService, ServiceResponse, ServiceStatus, UpdateService
 from src.misc.schemas import ServerRespModel
-from src.utils.exceptions import ServiceExists, ServiceNotFound
+from src.utils.exceptions import NotFound, ResourceExists
 
 
 class ServiceController:
@@ -43,7 +43,7 @@ class ServiceController:
         data = service.model_dump()
 
         if await self.get_service_by_name(data.get("name"), session):
-            raise ServiceExists()
+            raise ResourceExists("Service exists.")
 
         new_service = Service(**data)
 
@@ -59,7 +59,7 @@ class ServiceController:
         service_to_update = await self.get_service_by_uid(service_uid, session)
 
         if service_to_update is None:
-            raise ServiceNotFound()
+            raise NotFound("Service not found")
 
         valid_attrs = data.model_dump(exclude_none=True)
 
@@ -95,7 +95,7 @@ class ServiceController:
         service = await self.get_service_by_uid(service_uid, session)
 
         if service is None:
-            raise ServiceNotFound()
+            raise NotFound("Service not found")
 
         service_response = ServiceResponse.model_validate(service)
         return JSONResponse(

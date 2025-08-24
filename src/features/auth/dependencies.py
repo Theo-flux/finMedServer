@@ -14,8 +14,8 @@ from src.utils.exceptions import (
     AccessTokenRequired,
     InsufficientPermissions,
     InvalidToken,
+    NotFound,
     RefreshTokenRequired,
-    RoleNotFound,
 )
 
 
@@ -96,19 +96,19 @@ class RoleBasedTokenBearer(AccessTokenBearer):
         if self.check_role_status:
             valid_required_roles = await self.get_active_roles_from_db(self.required_roles)
             if not valid_required_roles:
-                raise RoleNotFound(f"None of the required roles {self.required_roles} are active in the system")
+                raise NotFound(f"None of the required roles {self.required_roles} are active in the system")
 
             active_required_roles = valid_required_roles
 
         role_uid = token_payload["user"]["role_uid"]
         if not role_uid:
-            raise RoleNotFound()
+            raise NotFound("Role not found.")
 
         async with AsyncSessionMaker() as session:
             role = await RoleController().get_role_by_uid(role_uid, session)
 
             if role is None:
-                raise RoleNotFound()
+                raise NotFound("Role not found.")
             print(role)
             if role.name not in active_required_roles:
                 raise InsufficientPermissions()

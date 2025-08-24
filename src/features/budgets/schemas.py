@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Optional
 
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, Field, field_serializer
 
 from src.features.config import DBModel
 from src.features.departments.schemas import DeptResponseModel
@@ -24,7 +24,7 @@ class BudgetAvailability(StrEnum):
 
 
 class CreateBudgetModel(BaseModel):
-    gross_amount: int
+    gross_amount: int = Field(ge=1000)
     title: str
     short_description: str
     department_uid: uuid.UUID

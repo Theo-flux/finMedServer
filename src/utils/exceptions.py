@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict
+from typing import Callable, Optional
 
 from fastapi import FastAPI, status
 from fastapi.requests import Request
@@ -8,267 +8,127 @@ from fastapi.responses import JSONResponse
 class AppException(Exception):
     """The base class for handling exceptions around the app."""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        self.message = message
+        super().__init__(message)
 
 
 class InvalidToken(AppException):
     """This handles user invalid token exceptions"""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "This token is invalid or expired. Pls get a new token.")
+
+
+class ResourceExists(AppException):
+    """Raised when a required resource already exists in database"""
+
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Resource already exists.")
 
 
 class NotFound(AppException):
     """Raised when a required resource doesn't exist in database"""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Resource doesn't exist.")
+
+
+class InActive(AppException):
+    """Raised when a required resource is inactive in the database"""
+
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Resource is inactive.")
 
 
 class UserEmailExists(AppException):
     """This handles user email exists"""
 
-    pass
-
-
-class UserPhoneNumberExists(AppException):
-    """This handles user email exists"""
-
-    pass
-
-
-class UserNotFound(AppException):
-    """This handles no user."""
-
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "User with email already exist.")
 
 
 class WrongCredentials(AppException):
     """This handles wrong user email or password."""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Wrong email or password.")
 
 
 class TokenExpired(AppException):
     """This handles expired user token."""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Token has expired.")
 
 
 class AccessTokenRequired(AppException):
     """This handles expired user token."""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Provide an access token.")
 
 
 class RefreshTokenRequired(AppException):
     """This handles expired user token."""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Provide a refresh token.")
 
 
 class ExpiredLink(AppException):
     """This handles expired password reset token"""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Link expired. get a new one.")
 
 
 class InvalidLink(AppException):
     """This handles invalid password reset token"""
 
-    pass
-
-
-class RoleExists(AppException):
-    """This handles already existing role in the database"""
-
-    pass
-
-
-class RoleNotFound(AppException):
-    """Raised when a required role doesn't exist in database"""
-
-    pass
-
-
-class InActiveRole(AppException):
-    """This handles inactive role"""
-
-    pass
-
-
-class DeptNotFound(AppException):
-    """This handles non existing dept"""
-
-    pass
-
-
-class DeptExists(AppException):
-    """This handles already existing dept in the database"""
-
-    pass
-
-
-class InActiveDept(AppException):
-    """This handles inactive department"""
-
-    pass
-
-
-class ServiceNotFound(AppException):
-    """This handles non existing service"""
-
-    pass
-
-
-class ServiceExists(AppException):
-    """This handles already existing service in the database"""
-
-    pass
-
-
-class InActiveService(AppException):
-    """This handles inactive service"""
-
-    pass
-
-
-class ExpCategoryNotFound(AppException):
-    """This handles non existing expense category"""
-
-    pass
-
-
-class ExpCategoryExists(AppException):
-    """This handles already existing expense category in the database"""
-
-    pass
-
-
-class InActiveExpCategory(AppException):
-    """This handles inactive expense category"""
-
-    pass
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Link is invalid. get a new one.")
 
 
 class InsufficientPermissions(Exception):
     """Raised when user doesn't have required role/permissions"""
 
-    pass
+    def __init__(self, message: Optional[str] = None):
+        self.message = message or "You don't have permission to access this resource."
+        super().__init__(self.message)
 
 
 def create_exception_handler(
-    status_code: int, extra_content: Dict[str, Any] = None
+    status_code: int, default_message: str = "An error occurred"
 ) -> Callable[[Request, Exception], JSONResponse]:
     async def exception_handler(req: Request, exc: AppException) -> JSONResponse:
+        # Use the custom message from the exception if available, otherwise use default
+        message = getattr(exc, "message", None) or default_message
+
         return JSONResponse(
             status_code=status_code,
-            content={"error_code": exc.__class__.__name__, **extra_content},
+            content={"error_code": exc.__class__.__name__, "message": message},
         )
 
     return exception_handler
 
 
 def register_exceptions(app: FastAPI):
-    app.add_exception_handler(
-        InvalidToken,
-        create_exception_handler(
-            status.HTTP_403_FORBIDDEN,
-            {"message": "This token is invalid or expired. Pls get a new token."},
-        ),
-    )
-    app.add_exception_handler(
-        NotFound,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Resource doesn't exist."}),
-    )
-    app.add_exception_handler(
-        UserNotFound,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "User doesn't exist."}),
-    )
-    app.add_exception_handler(
-        WrongCredentials,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Wrong email or password."}),
-    )
-    app.add_exception_handler(
-        UserPhoneNumberExists,
-        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "User with phone number already exist."}),
-    )
-    app.add_exception_handler(
-        UserEmailExists,
-        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "User with email already exist."}),
-    )
-    app.add_exception_handler(
-        AccessTokenRequired,
-        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Provide an access token."}),
-    )
-    app.add_exception_handler(
-        RefreshTokenRequired,
-        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Provide a refresh token."}),
-    )
-    app.add_exception_handler(
-        ExpiredLink,
-        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Link expired. get a new one."}),
-    )
-    app.add_exception_handler(
-        InvalidLink,
-        create_exception_handler(status.HTTP_403_FORBIDDEN, {"message": "Link is invalid. get a new one."}),
-    )
-    app.add_exception_handler(
-        RoleExists,
-        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Role already exists."}),
-    )
-    app.add_exception_handler(
-        RoleNotFound,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Role not found."}),
-    )
-    app.add_exception_handler(
-        InActiveRole,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Role is inactive."}),
-    )
-    app.add_exception_handler(
-        DeptNotFound,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Department not found."}),
-    )
-    app.add_exception_handler(
-        DeptExists,
-        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Department already exists."}),
-    )
-    app.add_exception_handler(
-        InActiveDept,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Dept. is inactive."}),
-    )
-    app.add_exception_handler(
-        ServiceNotFound,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Service not found."}),
-    )
-    app.add_exception_handler(
-        ServiceExists,
-        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Service already exists."}),
-    )
-    app.add_exception_handler(
-        InActiveService,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Service is inactive."}),
-    )
-    app.add_exception_handler(
-        ExpCategoryNotFound,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Service not found."}),
-    )
-    app.add_exception_handler(
-        ExpCategoryExists,
-        create_exception_handler(status.HTTP_409_CONFLICT, {"message": "Service already exists."}),
-    )
-    app.add_exception_handler(
-        InActiveExpCategory,
-        create_exception_handler(status.HTTP_404_NOT_FOUND, {"message": "Exp. catgeory is inactive."}),
-    )
-    app.add_exception_handler(
-        InsufficientPermissions,
-        create_exception_handler(
-            status.HTTP_403_FORBIDDEN, {"message": "You don't have permission to access this resource."}
-        ),
-    )
+    app.add_exception_handler(InvalidToken, create_exception_handler(status.HTTP_403_FORBIDDEN))
+    app.add_exception_handler(NotFound, create_exception_handler(status.HTTP_404_NOT_FOUND))
+    app.add_exception_handler(InActive, create_exception_handler(status.HTTP_404_NOT_FOUND))
+    app.add_exception_handler(ResourceExists, create_exception_handler(status.HTTP_409_CONFLICT))
+    app.add_exception_handler(WrongCredentials, create_exception_handler(status.HTTP_404_NOT_FOUND))
+    app.add_exception_handler(UserEmailExists, create_exception_handler(status.HTTP_409_CONFLICT))
+    app.add_exception_handler(AccessTokenRequired, create_exception_handler(status.HTTP_403_FORBIDDEN))
+    app.add_exception_handler(RefreshTokenRequired, create_exception_handler(status.HTTP_403_FORBIDDEN))
+    app.add_exception_handler(ExpiredLink, create_exception_handler(status.HTTP_403_FORBIDDEN))
+    app.add_exception_handler(InvalidLink, create_exception_handler(status.HTTP_403_FORBIDDEN))
+    app.add_exception_handler(InsufficientPermissions, create_exception_handler(status.HTTP_403_FORBIDDEN))
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)
     async def internal_server_error(request: Request, exc):
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": "A 500 error exception occured!", "error_code": "InternalServerError"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "A 500 error exception occurred!", "error_code": "InternalServerError"},
         )
