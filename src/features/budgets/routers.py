@@ -63,6 +63,15 @@ async def get_budget_by_uid(
     return await budget_controller.single_budget(budget_uid=budget_uid, session=session)
 
 
+@budget_router.delete("/{budget_uid}")
+async def del_budget_by_uid(
+    budget_uid: uuid.UUID,
+    token_payload: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.delete_budget(budget_uid=budget_uid, token_payload=token_payload, session=session)
+
+
 @budget_router.patch("/{budget_uid}", response_model=ServerRespModel[bool])
 async def update_budget(
     budget_uid: uuid.UUID,

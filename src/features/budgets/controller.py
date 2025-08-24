@@ -6,7 +6,7 @@ from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.selectable import Select
-from sqlmodel import func, select, update
+from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.budgets import Budget
@@ -183,3 +183,27 @@ class BudgetControllers:
         query = select(Budget).where(Budget.assignee_uid == user_uid)
 
         return await self.get_budgets(q=q, limit=limit, offset=offset, query=query, session=session)
+
+    async def delete_budget(
+        self,
+        budget_uid: uuid.UUID,
+        token_payload: dict,
+        session: AsyncSession,
+    ):
+        user_uid = token_payload["user"]["uid"]
+        if not user_uid:
+            raise InvalidToken()
+
+        budget_exists = await session.exec(select(Budget).where(Budget.user_uid == user_uid, Budget.uid == budget_uid))
+
+        if not budget_exists.first():
+            raise NotFound("Budget not found!")
+
+        statement = delete(Budget).where(Budget.user_uid == user_uid, Budget.uid == budget_uid)
+        await session.exec(statement)
+        await session.commit()
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[bool](data=True, message="Budget deleted successfully!").model_dump(),
+        )

@@ -34,7 +34,8 @@ class EditBudgetModel(BaseModel):
     gross_amount: Optional[int] = None
     title: Optional[str] = None
     short_description: Optional[str] = None
-    department_uid: uuid.UUID
+    department_uid: Optional[uuid.UUID] = None
+    assignee_uid: Optional[uuid.UUID] = None
 
 
 class BudgetUserResponseModel(DBModel):
