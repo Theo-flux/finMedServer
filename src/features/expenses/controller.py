@@ -124,15 +124,19 @@ class ExpensesController:
         limit: int,
         token_payload: dict,
         session: AsyncSession,
+        offset: int,
         budget_uid: Optional[uuid.UUID] = None,
         q: Optional[str] = None,
-        offset: Optional[int] = None,
     ):
         user_uid = token_payload["user"]["uid"]
         if not user_uid:
             raise InvalidToken()
 
-        query = select(Expenses).where(Expenses.user_uid == user_uid)
+        query = (
+            select(Expenses)
+            .options(selectinload(Expenses.budget), selectinload(Expenses.expenses_category))
+            .where(Expenses.user_uid == user_uid)
+        )
 
         if budget_uid:
             query = query.where(Expenses.budget_uid == budget_uid)

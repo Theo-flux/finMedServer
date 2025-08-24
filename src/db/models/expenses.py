@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
+from sqlmodel import Column, DateTime, Field, ForeignKey, Numeric, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from src.db.models.budgets import Budget
@@ -27,7 +27,9 @@ class Expenses(SQLModel, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    budget_uid: uuid.UUID = Field(foreign_key="budgets.uid")
+    budget_uid: uuid.UUID = Field(
+        sa_column=Column("budget_uid", ForeignKey("budgets.uid", ondelete="CASCADE"), nullable=False)
+    )
     expenses_category_uid: uuid.UUID = Field(foreign_key="expenses_category.uid")
     user_uid: uuid.UUID = Field(foreign_key="users.uid")
     amount_spent: Decimal = Field(sa_column=Column(Numeric(12, 2)))
