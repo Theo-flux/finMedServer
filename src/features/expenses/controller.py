@@ -88,14 +88,14 @@ class ExpensesController:
             await self.generate_exp_serial_no(new_exp.uid, session)
             await session.commit()
 
+            return JSONResponse(
+                status_code=status.HTTP_201_CREATED,
+                content=ServerRespModel[bool](data=True, message="Expense created!").model_dump(),
+            )
+
         except Exception as e:
             await session.rollback()
             raise e
-
-        return JSONResponse(
-            status_code=status.HTTP_201_CREATED,
-            content=ServerRespModel[bool](data=True, message="Expense created!").model_dump(),
-        )
 
     async def update_exp(self, exp_uid: uuid.UUID, token_payload: dict, data: EditExpenseModel, session: AsyncSession):
         exp_to_update = await self.get_exp_by_uid(exp_uid, session)

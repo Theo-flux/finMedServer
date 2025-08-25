@@ -6,6 +6,7 @@ from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from src.db.models.invoices import Invoice
+    from src.db.models.users import User
 
 
 class Patient(SQLModel, table=True):
@@ -24,13 +25,17 @@ class Patient(SQLModel, table=True):
         ),
     )
     hospital_id: str = Field(nullable=False, index=True, unique=True)
+    user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
     first_name: str = Field(...)
     last_name: str = Field(...)
+    other_name: Optional[str] = Field(default="")
     gender: str = Field(...)
     phone_number: Optional[str] = Field(default="")
+    patient_type: str = Field(...)
 
     # relationships
     invoices: List["Invoice"] = Relationship(back_populates="patient")
+    user: "User" = Relationship(back_populates="patients")
 
     def __repr__(self) -> str:
         return f"<Patient: {self.model_dump()}>"

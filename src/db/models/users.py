@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from src.db.models.departments import Department
     from src.db.models.expenses import Expenses
     from src.db.models.invoices import Invoice
+    from src.db.models.patients import Patient
     from src.db.models.payments import Payment
     from src.db.models.roles import Role
 
@@ -51,6 +52,7 @@ class User(SQLModel, table=True):
     role: "Role" = Relationship(back_populates="users")
     invoices: List["Invoice"] = Relationship(back_populates="user")
     payments: List["Payment"] = Relationship(back_populates="user")
+    patients: List["Patient"] = Relationship(back_populates="user")
     created_budgets: List["Budget"] = Relationship(
         back_populates="user", sa_relationship_kwargs={"foreign_keys": "[Budget.user_uid]"}
     )

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from enum import StrEnum
 from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict, field_serializer
@@ -7,6 +8,11 @@ from sqlalchemy.sql.selectable import Select
 
 T = TypeVar("T")
 SelectOfScalar = Select[T]
+
+
+class Gender(StrEnum):
+    MALE = "MALE"
+    FEMALE = "FEMALE"
 
 
 class DBModel(BaseModel):
