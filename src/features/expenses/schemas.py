@@ -4,8 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_serializer
 
-from src.features.budgets.schemas import BudgetResponseModel, BudgetUserResponseModel
-from src.features.config import DBModel
+from src.features.budgets.schemas import BudgetResponseModel
+from src.features.config import AbridgedUserResponseModel, DBModel
 from src.features.expenses_category.schemas import ExpCategoryResponseModel
 
 
@@ -50,4 +50,4 @@ class ExpensesResponseModel(DBModel):
 
 
 class SingleExpenseResponseModel(ExpensesResponseModel):
-    user: BudgetUserResponseModel
+    user: AbridgedUserResponseModel

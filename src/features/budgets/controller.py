@@ -18,7 +18,7 @@ from src.features.budgets.schemas import (
 from src.features.config import SelectOfScalar
 from src.features.roles.controller import RoleController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
-from src.utils import build_serial_no
+from src.utils import build_serial_no, get_current_and_total_pages
 from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
 
 role_controller = RoleController()
@@ -75,14 +75,14 @@ class BudgetController:
             await self.generate_budget_serial_no(new_budget.uid, session)
             await session.commit()
 
+            return JSONResponse(
+                status_code=status.HTTP_201_CREATED,
+                content=ServerRespModel[bool](data=True, message="Budget created!").model_dump(),
+            )
+
         except Exception as e:
             await session.rollback()
             raise e
-
-        return JSONResponse(
-            status_code=status.HTTP_201_CREATED,
-            content=ServerRespModel[bool](data=True, message="Budget created!").model_dump(),
-        )
 
     async def update_budget(
         self, budget_uid: uuid.UUID, token_payload: dict, data: EditBudgetModel, session: AsyncSession
@@ -113,6 +113,8 @@ class BudgetController:
         limit: int,
         query: SelectOfScalar[Budget],
         session: AsyncSession,
+        budget_status: Optional[str],
+        budget_availability: Optional[str],
         q: Optional[str] = None,
         offset: Optional[int] = None,
     ):
@@ -124,6 +126,12 @@ class BudgetController:
                 | Budget.serial_no.ilike(search_term)
             )
 
+        if budget_status:
+            query = query.where(Budget.status == budget_status)
+
+        if budget_availability:
+            query = query.where(Budget.availability == budget_availability)
+
         count_query = select(func.count()).select_from(query.subquery())
         total = await session.scalar(count_query)
 
@@ -132,8 +140,11 @@ class BudgetController:
         results = await session.exec(query)
         budgets = results.all()
         budgets_response = [BudgetResponseModel.model_validate(budget) for budget in budgets]
-        current_page = (offset // limit) + 1
-        total_pages = (total + limit - 1) // limit
+        current_page, total_pages = get_current_and_total_pages(
+            limit=limit,
+            total=total,
+            offset=offset,
+        )
         paginated_budget = PaginatedResponseModel.model_validate(
             {
                 "items": budgets_response,
@@ -155,32 +166,62 @@ class BudgetController:
         limit: int,
         token_payload: dict,
         session: AsyncSession,
+        budget_status: Optional[str],
+        budget_availability: Optional[str],
         q: Optional[str] = None,
         offset: Optional[int] = None,
     ):
         user_uid = token_payload["user"]["uid"]
-        if not user_uid:
+        role_uid = token_payload["user"]["role_uid"]
+
+        if not user_uid or not role_uid:
             raise InvalidToken()
 
-        query = select(Budget).where(Budget.user_uid == user_uid)
+        query = select(Budget)
 
-        return await self.get_budgets(q=q, limit=limit, offset=offset, query=query, session=session)
+        if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
+            query = query.where(Budget.user_uid == user_uid)
+
+        return await self.get_budgets(
+            q=q,
+            limit=limit,
+            offset=offset,
+            query=query,
+            session=session,
+            budget_availability=budget_availability,
+            budget_status=budget_status,
+        )
 
     async def get_assigned_budget(
         self,
         limit: int,
         token_payload: dict,
         session: AsyncSession,
+        budget_status: Optional[str],
+        budget_availability: Optional[str],
         q: Optional[str] = None,
         offset: Optional[int] = None,
     ):
         user_uid = token_payload["user"]["uid"]
-        if not user_uid:
+        role_uid = token_payload["user"]["role_uid"]
+
+        if not user_uid or not role_uid:
             raise InvalidToken()
 
-        query = select(Budget).where(Budget.assignee_uid == user_uid)
+        query = select(Budget)
 
-        return await self.get_budgets(q=q, limit=limit, offset=offset, query=query, session=session)
+        if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
+            query = query.where(Budget.assignee_uid == user_uid)
+
+        return await self.get_budgets(
+            q=q,
+            limit=limit,
+            offset=offset,
+            query=query,
+            session=session,
+            budget_availability=budget_availability,
+            budget_status=budget_status,
+        )
 
     async def delete_budget(
         self,

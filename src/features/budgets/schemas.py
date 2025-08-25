@@ -6,7 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_serializer
 
-from src.features.config import DBModel
+from src.features.config import AbridgedUserResponseModel, DBModel
 from src.features.departments.schemas import DeptResponseModel
 
 
@@ -36,14 +36,8 @@ class EditBudgetModel(BaseModel):
     short_description: Optional[str] = None
     department_uid: Optional[uuid.UUID] = None
     assignee_uid: Optional[uuid.UUID] = None
-
-
-class BudgetUserResponseModel(DBModel):
-    uid: uuid.UUID
-    first_name: str
-    last_name: str
-    email: str
-    staff_no: str
+    status: Optional[BudgetStatus] = None
+    availability: Optional[BudgetStatus] = None
 
 
 class BudgetResponseModel(DBModel):
@@ -79,6 +73,6 @@ class BudgetResponseModel(DBModel):
 
 class SingleBudgetResponseModel(BudgetResponseModel):
     department: DeptResponseModel
-    user: BudgetUserResponseModel
-    approver: Optional[BudgetUserResponseModel] = None
-    assignee: Optional[BudgetUserResponseModel] = None
+    user: AbridgedUserResponseModel
+    approver: Optional[AbridgedUserResponseModel] = None
+    assignee: Optional[AbridgedUserResponseModel] = None

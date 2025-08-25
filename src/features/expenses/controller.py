@@ -18,7 +18,7 @@ from src.features.expenses.schemas import (
 )
 from src.features.expenses_category.controller import ExpCategoryController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
-from src.utils import build_serial_no
+from src.utils import build_serial_no, get_current_and_total_pages
 from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
 
 budget_controller = BudgetController()
@@ -157,8 +157,11 @@ class ExpensesController:
         results = await session.exec(query)
         exps = results.all()
         exps_response = [ExpensesResponseModel.model_validate(exp) for exp in exps]
-        current_page = (offset // limit) + 1
-        total_pages = (total + limit - 1) // limit
+        current_page, total_pages = get_current_and_total_pages(
+            limit=limit,
+            total=total,
+            offset=offset,
+        )
         paginated_exp = PaginatedResponseModel.model_validate(
             {
                 "items": exps_response,

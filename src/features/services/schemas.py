@@ -11,7 +11,7 @@ class ServiceStatus(StrEnum):
     IN_ACTIVE = "IN_ACTIVE"
 
 
-class CreateService(BaseModel):
+class CreateServiceModel(BaseModel):
     name: str
 
     @field_validator("name")
@@ -20,7 +20,7 @@ class CreateService(BaseModel):
         return v.lower().strip()
 
 
-class UpdateService(BaseModel):
+class UpdateServiceModel(BaseModel):
     name: Optional[str] = None
     status: Optional[ServiceStatus] = None
 
@@ -30,7 +30,7 @@ class UpdateService(BaseModel):
         return v.lower().strip()
 
 
-class ServiceResponse(DBModel):
+class ServiceResponseModel(DBModel):
     id: int
     name: str
     status: ServiceStatus

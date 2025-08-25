@@ -8,7 +8,7 @@ from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.services import Service
-from src.features.services.schemas import CreateService, ServiceResponse, ServiceStatus, UpdateService
+from src.features.services.schemas import CreateServiceModel, ServiceResponseModel, ServiceStatus, UpdateServiceModel
 from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import NotFound, ResourceExists
 
@@ -39,7 +39,7 @@ class ServiceController:
 
         self.is_service_active(service)
 
-    async def create_service(self, service: CreateService, session: AsyncSession):
+    async def create_service(self, service: CreateServiceModel, session: AsyncSession):
         data = service.model_dump()
 
         if await self.get_service_by_name(data.get("name"), session):
@@ -55,7 +55,7 @@ class ServiceController:
             content=ServerRespModel[bool](data=True, message="Service created!").model_dump(),
         )
 
-    async def update_service(self, service_uid: uuid.UUID, data: UpdateService, session: AsyncSession):
+    async def update_service(self, service_uid: uuid.UUID, data: UpdateServiceModel, session: AsyncSession):
         service_to_update = await self.get_service_by_uid(service_uid, session)
 
         if service_to_update is None:
@@ -82,11 +82,11 @@ class ServiceController:
 
         print("result", result)
 
-        service_responses = [ServiceResponse.model_validate(service, from_attributes=True) for service in services]
+        service_responses = [ServiceResponseModel.model_validate(service, from_attributes=True) for service in services]
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[List[ServiceResponse]](
+            content=ServerRespModel[List[ServiceResponseModel]](
                 data=service_responses, message="Services retrieved successfully!"
             ).model_dump(),
         )
@@ -97,10 +97,10 @@ class ServiceController:
         if service is None:
             raise NotFound("Service not found")
 
-        service_response = ServiceResponse.model_validate(service)
+        service_response = ServiceResponseModel.model_validate(service)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[ServiceResponse](
+            content=ServerRespModel[ServiceResponseModel](
                 data=service_response, message="Service retrieved successfully!"
             ).model_dump(),
         )

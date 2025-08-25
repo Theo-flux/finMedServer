@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
+from sqlalchemy import ForeignKey
 from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -29,13 +30,12 @@ class Payment(SQLModel, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    received_at: Optional[datetime] = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
-    invoice_uid: uuid.UUID = Field(foreign_key="invoices.uid")
+    invoice_uid: uuid.UUID = Field(sa_column=Column("invoice_uid", ForeignKey("invoices.uid", ondelete="CASCADE")))
     user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
     payment_method: str = Field(...)
     amount_received: Decimal = Field(sa_column=Column(Numeric(12, 2)))
     reference_number: Optional[str] = Field(default="")
-    Note: str = Field(default="")
+    note: str = Field(default="")
 
     # relationships
     invoice: "Invoice" = Relationship(back_populates="payments")

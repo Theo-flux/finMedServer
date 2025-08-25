@@ -29,3 +29,11 @@ class DBModel(BaseModel):
         return str(value)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AbridgedUserResponseModel(DBModel):
+    uid: uuid.UUID
+    first_name: str
+    last_name: str
+    email: str
+    staff_no: str

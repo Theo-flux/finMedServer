@@ -8,7 +8,9 @@ from src.features.budgets.routers import budget_router
 from src.features.departments.routers import dept_router
 from src.features.expenses.routers import expense_router
 from src.features.expenses_category.routers import category_router
+from src.features.invoices.routers import invoice_router
 from src.features.patients.routers import patients_router
+from src.features.payments.routers import payment_router
 from src.features.roles.routers import role_router
 from src.features.services.routers import service_router
 from src.features.users.routers import user_router
@@ -55,3 +57,5 @@ app.include_router(category_router, prefix=f"{api_version}/categories", tags=["C
 app.include_router(budget_router, prefix=f"{api_version}/budgets", tags=["Budgets"])
 app.include_router(expense_router, prefix=f"{api_version}/expenses", tags=["Expenses"])
 app.include_router(patients_router, prefix=f"{api_version}/patients", tags=["Patients"])
+app.include_router(invoice_router, prefix=f"{api_version}/invoices", tags=["Invoices"])
+app.include_router(payment_router, prefix=f"{api_version}/payments", tags=["Payments"])
