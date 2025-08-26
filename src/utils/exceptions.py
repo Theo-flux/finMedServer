@@ -98,6 +98,14 @@ class InsufficientPermissions(Exception):
         super().__init__(self.message)
 
 
+class BadRequest(Exception):
+    """Raised when a bad request is made to the api."""
+
+    def __init__(self, message: Optional[str] = None):
+        self.message = message or "Invalid request"
+        super().__init__(self.message)
+
+
 def create_exception_handler(
     status_code: int, default_message: str = "An error occurred"
 ) -> Callable[[Request, Exception], JSONResponse]:
@@ -125,6 +133,7 @@ def register_exceptions(app: FastAPI):
     app.add_exception_handler(ExpiredLink, create_exception_handler(status.HTTP_403_FORBIDDEN))
     app.add_exception_handler(InvalidLink, create_exception_handler(status.HTTP_403_FORBIDDEN))
     app.add_exception_handler(InsufficientPermissions, create_exception_handler(status.HTTP_403_FORBIDDEN))
+    app.add_exception_handler(BadRequest, create_exception_handler(status.HTTP_409_CONFLICT))
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)
     async def internal_server_error(request: Request, exc):

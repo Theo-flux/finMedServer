@@ -21,18 +21,22 @@ payment_router = APIRouter()
 payment_controller = PaymentController()
 
 
-@payment_router.post("", response_model=ServerRespModel[bool])
+@payment_router.post("/{invoice_uid}", response_model=ServerRespModel[bool])
 async def create_payment(
+    invoice_uid: uuid.UUID,
     data: CreatePaymentModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    return await payment_controller.create_payment(token_payload=token_payload, data=data, session=session)
+    return await payment_controller.create_payment(
+        invoice_uid=invoice_uid, token_payload=token_payload, data=data, session=session
+    )
 
 
 @payment_router.get("", response_model=ServerRespModel[PaymentResponseModel])
 async def get_payments(
-    payment_method: PaymentMethod = Query(default=None),
+    payment_method: Optional[PaymentMethod] = Query(default=None),
+    serial_no: Optional[str] = Query(default=None),
     reference_number: str = Query(default=None),
     q: Optional[str] = Query(default=None),
     limit: Optional[int] = Query(
@@ -48,6 +52,7 @@ async def get_payments(
         offset=offset,
         reference_number=reference_number,
         payment_method=payment_method,
+        serial_no=serial_no,
         token_payload=token_payload,
         session=session,
     )

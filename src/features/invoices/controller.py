@@ -18,11 +18,11 @@ from src.features.invoices.schemas import (
     UpdateInvoiceModel,
 )
 from src.features.patients.controller import PatientController
-from src.features.payments.schemas import PaymentMethod, SinglePaymentResponseModel
+from src.features.payments.schemas import PaymentMethod, PaymentResponseModel
 from src.features.roles.controller import RoleController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
-from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
+from src.utils.exceptions import BadRequest, InsufficientPermissions, InvalidToken, NotFound
 
 patient_controller = PatientController()
 role_controller = RoleController()
@@ -37,7 +37,22 @@ class InvoiceController:
         await session.exec(statement)
 
     async def get_invoice_by_uid(self, invoice_uid: uuid.UUID, session: AsyncSession):
-        statement = select(Invoice).where(Invoice.uid == invoice_uid)
+        statement = (
+            select(Invoice)
+            .options(
+                selectinload(Invoice.user),
+                selectinload(Invoice.patient),
+                selectinload(Invoice.service),
+                selectinload(Invoice.department),
+            )
+            .where(Invoice.uid == invoice_uid)
+        )
+        result = await session.exec(statement=statement)
+
+        return result.first()
+
+    async def get_invoice_with_payments(self, invoice_uid: uuid.UUID, session: AsyncSession):
+        statement = select(Invoice).options(selectinload(Invoice.payments)).where(Invoice.uid == invoice_uid)
         result = await session.exec(statement=statement)
 
         return result.first()
@@ -126,6 +141,7 @@ class InvoiceController:
                 if not patient:
                     raise NotFound("Patient doesn't exist!")
 
+            print(invoice)
             new_invoice = Invoice(**invoice)
             new_invoice.net_amount_due = new_invoice.calculate_net_amount_due()
             session.add(new_invoice)
@@ -145,7 +161,7 @@ class InvoiceController:
     async def update_invoice(
         self, invoice_uid: uuid.UUID, token_payload: dict, data: UpdateInvoiceModel, session: AsyncSession
     ):
-        invoice_to_update = await self.get_invoice_by_uid(invoice_uid, session)
+        invoice_to_update = await self.get_invoice_with_payments(invoice_uid, session)
 
         if invoice_to_update is None:
             raise NotFound("Invoice doesn't exist")
@@ -153,18 +169,24 @@ class InvoiceController:
         if str(invoice_to_update.user_uid) != token_payload["user"]["uid"]:
             raise InsufficientPermissions("You don't have the permission to update this invoice!")
 
+        existing_payments = await session.exec(select(Payment).where(Payment.invoice_uid == invoice_uid))
+        payments = existing_payments.all()
+
         valid_attrs = data.model_dump(exclude_none=True)
         if valid_attrs:
+            financial_fields = {"gross_amount", "tax_percent", "discount_percent"}
+            print("Payments count: ", len(payments))
+            if payments and any(field in valid_attrs for field in financial_fields):
+                raise BadRequest("Cannot update financial details of an invoice with existing payments")
+
             if valid_attrs.get("patient_uid"):
                 patient = await patient_controller.get_patient_by_uid(
                     patient_uid=valid_attrs.get("patient_uid"), session=session
                 )
-
                 if not patient:
                     raise NotFound("Patient doesn't exist!")
 
             valid_attrs["updated_at"] = datetime.now()
-            financial_fields = {"gross_amount", "tax_percent", "discount_percent"}
 
             for field, value in valid_attrs.items():
                 setattr(invoice_to_update, field, value)
@@ -195,7 +217,7 @@ class InvoiceController:
         if not user_uid:
             raise InvalidToken()
 
-        query = select(Payment).where(Payment.invoice_uid == invoice_uid).options(selectinload(Payment.user))
+        query = select(Payment).where(Payment.invoice_uid == invoice_uid)
 
         if q:
             query = query.where(Payment.note.ilike(f"%{q}"))
@@ -215,7 +237,7 @@ class InvoiceController:
         results = await session.exec(query)
 
         invoice_payments = results.all()
-        invoice_payments_response = [SinglePaymentResponseModel.model_validate(invoice) for invoice in invoice_payments]
+        invoice_payments_response = [PaymentResponseModel.model_validate(invoice) for invoice in invoice_payments]
         current_page, total_pages = get_current_and_total_pages(
             limit=limit,
             total=total,
@@ -232,7 +254,7 @@ class InvoiceController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[PaginatedResponseModel[SinglePaymentResponseModel]](
+            content=ServerRespModel[PaginatedResponseModel[PaymentResponseModel]](
                 data=paginated_invoice_payments, message="Invoice Payments retrieved successfully"
             ).model_dump(),
         )

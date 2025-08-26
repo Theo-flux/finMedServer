@@ -32,7 +32,7 @@ class DBModel(BaseModel):
 
 
 class AbridgedUserResponseModel(DBModel):
-    uid: uuid.UUID
+    id: int
     first_name: str
     last_name: str
     email: str

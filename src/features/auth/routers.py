@@ -7,7 +7,7 @@ from src.misc.schemas import ServerRespModel
 
 from .controller import AuthController
 from .dependencies import AccessTokenBearer, RefreshTokenBearer, RoleBasedTokenBearer
-from .schemas import ChangePwdModel, LoginResModel
+from .schemas import ChangePwdModel, TokenModel
 
 auth_router = APIRouter()
 auth_controller = AuthController()
@@ -16,7 +16,7 @@ auth_controller = AuthController()
 @auth_router.post(
     "/login",
     status_code=status.HTTP_200_OK,
-    response_model=ServerRespModel[LoginResModel],
+    response_model=ServerRespModel[TokenModel],
 )
 async def login_user(login_data: LoginUserModel = Body(...), session: AsyncSession = Depends(get_session)):
     return await auth_controller.login_user(login_data, session)

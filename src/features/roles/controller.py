@@ -40,7 +40,7 @@ class RoleController:
         return self.is_role_active(role)
 
     async def is_role_admin(self, role_uid: uuid.UUID, session: AsyncSession):
-        role_by_uid = self.get_role_by_uid(role_uid, session)
+        role_by_uid = await self.get_role_by_uid(role_uid, session)
 
         if role_by_uid is None:
             False

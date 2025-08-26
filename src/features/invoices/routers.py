@@ -14,8 +14,8 @@ from src.features.invoices.schemas import (
     SingleInvoiceResponseModel,
     UpdateInvoiceModel,
 )
-from src.features.payments.schemas import PaymentMethod
-from src.misc.schemas import ServerRespModel
+from src.features.payments.schemas import PaymentMethod, PaymentResponseModel
+from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 invoice_router = APIRouter()
 invoice_controller = InvoiceController()
@@ -55,7 +55,9 @@ async def get_single_invoice(
     return await invoice_controller.single_invoice(invoice_uid=invoice_uid, session=session)
 
 
-@invoice_router.get("/{invoice_uid}/payments", response_model=ServerRespModel[SingleInvoiceResponseModel])
+@invoice_router.get(
+    "/{invoice_uid}/payments", response_model=ServerRespModel[PaginatedResponseModel[PaymentResponseModel]]
+)
 async def get_invoice_payments(
     invoice_uid: uuid.UUID,
     payment_method: PaymentMethod = Query(default=None),

@@ -33,7 +33,9 @@ class CreateInvoiceModel(BaseModel):
     tax_percent: Optional[Decimal] = Field(default=Decimal("0.0"))
     discount_percent: Optional[Decimal] = Field(default=Decimal("0.0"))
     invoice_type: InvoiceType
-    patient_uid: Optional[uuid.UUID]
+    department_uid: Optional[uuid.UUID] = None
+    service_uid: Optional[uuid.UUID] = None
+    patient_uid: Optional[uuid.UUID] = None
 
 
 class UpdateInvoiceModel(BaseModel):
@@ -42,6 +44,8 @@ class UpdateInvoiceModel(BaseModel):
     tax_percent: Optional[Decimal] = None
     discount_percent: Optional[Decimal] = None
     invoice_type: Optional[InvoiceType] = None
+    department_uid: Optional[uuid.UUID] = None
+    service_uid: Optional[uuid.UUID] = None
     patient_uid: Optional[uuid.UUID] = None
 
 
@@ -56,12 +60,12 @@ class InvoiceResponseModel(DBModel):
     tax_percent: Decimal
     discount_percent: Decimal
     net_amount_due: Decimal
-    department_uid: uuid.UUID
-    service_uid: uuid.UUID
-    patient_uuid: Optional[uuid.UUID] = None
-    user_uid: uuid.UUID
+    department_uid: Optional[uuid.UUID] = None
+    service_uid: Optional[uuid.UUID] = None
+    patient_uid: Optional[uuid.UUID] = None
+    user_uid: Optional[uuid.UUID] = None
 
-    @field_serializer("department_uid", "user_uid", "service_uid", "patient_uuid")
+    @field_serializer("department_uid", "user_uid", "service_uid", "patient_uid")
     def serialize_uuids(self, value: uuid.UUID, _info):
         if value:
             return str(value)
@@ -72,7 +76,7 @@ class InvoiceResponseModel(DBModel):
 
 
 class SingleInvoiceResponseModel(InvoiceResponseModel):
-    user: AbridgedUserResponseModel
-    service: ServiceResponseModel
-    department: DeptResponseModel
+    user: Optional[AbridgedUserResponseModel] = None
+    service: Optional[ServiceResponseModel] = None
+    department: Optional[DeptResponseModel] = None
     patient: Optional[PatientResponseModel] = None

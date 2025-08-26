@@ -66,6 +66,7 @@ class PaymentController:
         token_payload: dict,
         session: AsyncSession,
         offset: int,
+        serial_no: Optional[str],
         payment_method: Optional[PaymentMethod] = None,
         reference_number: Optional[str] = None,
         q: Optional[str] = None,
@@ -76,18 +77,22 @@ class PaymentController:
         if not user_uid or not role_uid:
             raise InvalidToken()
 
-        query = select(Invoice)
+        query = select(Payment)
 
         if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
             query = query.where(Payment.user_uid == user_uid)
         if q:
-            query = query.where(Payment.note.ilike(f"%{q}"))
+            search_term = f"%{q}"
+            query = query.where(Payment.note.ilike(search_term) | Payment.serial_no.ilike(search_term))
 
         if payment_method:
             query = query.where(Payment.payment_method == payment_method)
 
         if reference_number:
             query = query.where(Payment.reference_number.ilike(f"%{reference_number}%"))
+
+        if serial_no:
+            query = query.where(Payment.serial_no == serial_no)
 
         count_query = select(func.count()).select_from(query.subquery())
 
@@ -127,7 +132,9 @@ class PaymentController:
         payment["user_uid"] = token_payload["user"]["uid"]
 
         try:
-            invoice_to_update = await invoice_controller.get_invoice_by_uid(invoice_uid=invoice_uid, session=session)
+            invoice_to_update = await invoice_controller.get_invoice_with_payments(
+                invoice_uid=invoice_uid, session=session
+            )
             if not invoice_to_update:
                 raise NotFound("Invoice not found")
 
@@ -137,12 +144,14 @@ class PaymentController:
 
             await session.flush()
             await self.generate_payment_serial_no(new_payment.uid, session)
+            await session.refresh(invoice_to_update)
 
             invoice_to_update.net_amount_due = invoice_to_update.calculate_net_amount_due()
             invoice_to_update.status = invoice_to_update.payment_status
             session.add(invoice_to_update)
 
             await session.commit()
+            await session.refresh(invoice_to_update)
             await session.refresh(invoice_to_update)
 
             return JSONResponse(
@@ -172,7 +181,9 @@ class PaymentController:
             for field, value in valid_attrs.items():
                 setattr(payment_to_update, field, value)
 
-            invoice_to_update = payment_to_update.invoice
+            invoice_to_update = await invoice_controller.get_invoice_with_payments(
+                invoice_uid=payment_to_update.invoice_uid, session=session
+            )
 
             if not invoice_to_update:
                 raise NotFound("Invoice not found")

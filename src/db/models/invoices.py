@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
 
@@ -32,10 +32,10 @@ class Invoice(SQLModel, table=True):
         ),
     )
     invoiced_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
-    service_uid: uuid.UUID = Field(foreign_key="services.uid")
-    patient_uid: Optional[uuid.UUID] = Field(foreign_key="patients.uid")
-    user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
-    department_uid: uuid.UUID = Field(foreign_key="departments.uid")
+    service_uid: Optional[uuid.UUID] = Field(foreign_key="services.uid", nullable=True)
+    patient_uid: Optional[uuid.UUID] = Field(foreign_key="patients.uid", nullable=True)
+    user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid", nullable=True)
+    department_uid: Optional[uuid.UUID] = Field(foreign_key="departments.uid", nullable=True)
     invoice_type: str = Field(...)
     title: str = Field(...)
     status: Optional[str] = Field(
@@ -51,7 +51,7 @@ class Invoice(SQLModel, table=True):
     service: "Service" = Relationship(back_populates="invoices")
     patient: "Patient" = Relationship(back_populates="invoices")
     department: "Department" = Relationship(back_populates="invoices")
-    payments: "Payment" = Relationship(back_populates="invoice", cascade_delete=True)
+    payments: List["Payment"] = Relationship(back_populates="invoice", cascade_delete=True)
 
     @property
     def tax_amount(self) -> Decimal:
