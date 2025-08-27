@@ -28,11 +28,11 @@ async def login_user(login_data: LoginUserModel = Body(...), session: AsyncSessi
     response_model=ServerRespModel[bool],
 )
 async def register_user(
-    user: CreateUserModel = Body(...),
-    _: dict = Depends(RoleBasedTokenBearer(["admin"])),
+    user_data: CreateUserModel = Body(...),
+    token_payload: dict = Depends(RoleBasedTokenBearer(required_roles=["admin", "subadmin"], is_not_protected=True)),
     session: AsyncSession = Depends(get_session),
 ):
-    return await auth_controller.create_user(user, session)
+    return await auth_controller.create_user(user_data=user_data, token_payload=token_payload, session=session)
 
 
 @auth_router.get(
@@ -44,7 +44,7 @@ async def get_current_user_profile(
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    return await auth_controller.get_current_user(token_payload, session)
+    return await auth_controller.get_current_user(token_payload=token_payload, session=session)
 
 
 @auth_router.get("/logout")

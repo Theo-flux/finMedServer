@@ -33,7 +33,7 @@ class Role(SQLModel, table=True):
     name: str = Field(...)
     status: Optional[str] = Field(default=RoleStatus.ACTIVE.value)
 
-    users: List["User"] = Relationship(back_populates="role")
+    users: Optional[List["User"]] = Relationship(back_populates="role")
 
     def __repr__(self) -> str:
         return f"<Roles: {self.model_dump()}>"

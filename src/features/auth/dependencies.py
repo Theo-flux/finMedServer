@@ -20,7 +20,8 @@ from src.utils.exceptions import (
 
 
 class TokenBearer(HTTPBearer):
-    def __init__(self, auto_error=True):
+    def __init__(self, auto_error=True, is_not_protected: bool = False):
+        self.is_not_protected = is_not_protected
         super().__init__(
             auto_error=auto_error,
         )
@@ -33,6 +34,11 @@ class TokenBearer(HTTPBearer):
             return False
 
     async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
+        auth_header = request.headers.get("Authorization")
+
+        if self.is_not_protected and not auth_header:
+            return None
+
         cred = await super().__call__(request)
         token = cred.credentials
 
@@ -65,8 +71,14 @@ class RefreshTokenBearer(TokenBearer):
 
 
 class RoleBasedTokenBearer(AccessTokenBearer):
-    def __init__(self, required_roles: Union[str, List[str]], auto_error: bool = True, check_role_status: bool = True):
-        super().__init__(auto_error=auto_error)
+    def __init__(
+        self,
+        required_roles: Union[str, List[str]],
+        auto_error: bool = True,
+        check_role_status: bool = True,
+        is_not_protected: bool = False,
+    ):
+        super().__init__(auto_error=auto_error, is_not_protected=is_not_protected)
         if isinstance(required_roles, str):
             self.required_roles = [required_roles]
         else:

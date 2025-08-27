@@ -20,7 +20,7 @@ class CreateUserModel(BaseModel):
     first_name: str = Field(...)
     last_name: str = Field(...)
     email: EmailStr = Field(...)
-    password: str = Field(...)
+    password: Optional[str] = Field(default="")
     department_uid: uuid.UUID = Field(...)
     role_uid: uuid.UUID = Field(...)
 
@@ -32,7 +32,7 @@ class CreateUserModel(BaseModel):
 
 class LoginUserModel(BaseModel):
     email: EmailStr = Field(...)
-    password: str = Field(...)
+    password: Optional[str] = None
 
     @field_validator("email")
     @classmethod

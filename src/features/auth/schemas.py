@@ -1,8 +1,14 @@
 import uuid
+from enum import StrEnum
 
 from pydantic import BaseModel, field_serializer, field_validator
 
 from src.utils.validators import email_validator
+
+
+class UserType(StrEnum):
+    NEW_USER = "new_user"
+    OLD_USER = "old_user"
 
 
 class ForgotPwdModel(BaseModel):
@@ -31,6 +37,7 @@ class ChangePwdModel(BaseModel):
 class TokenModel(BaseModel):
     access_token: str
     refresh_token: str
+    user_type: UserType
 
 
 class LoginResModel(TokenModel):

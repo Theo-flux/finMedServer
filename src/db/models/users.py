@@ -36,6 +36,7 @@ class User(SQLModel, table=True):
         ),
     )
     staff_no: Optional[str] = Field(nullable=True, index=True, unique=True)
+    created_by_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid", default=None)
     department_uid: uuid.UUID = Field(foreign_key="departments.uid")
     role_uid: uuid.UUID = Field(foreign_key="roles.uid")
     first_name: str = Field(...)
@@ -43,11 +44,16 @@ class User(SQLModel, table=True):
     user_name: Optional[str] = Field(default="")
     email: EmailStr = Field(...)
     phone_number: Optional[str] = Field(default="")
-    password: str = Field(...)
+    password: Optional[str] = Field(default="")
     avatar: Optional[str] = Field(default="")
     status: Optional[str] = Field(default=UserStatus.IN_ACTIVE.value)
 
     # relationship
+    created_by_user: Optional["User"] = Relationship(
+        back_populates="created_users",
+        sa_relationship_kwargs={"remote_side": "[User.uid]", "foreign_keys": "[User.created_by_uid]"},
+    )
+    created_users: List["User"] = Relationship(back_populates="created_by_user")
     department: Optional["Department"] = Relationship(back_populates="users")
     role: "Role" = Relationship(back_populates="users")
     invoices: List["Invoice"] = Relationship(back_populates="user")

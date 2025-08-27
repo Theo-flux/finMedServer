@@ -31,9 +31,9 @@ class Department(SQLModel, table=True):
     status: Optional[str] = Field(default=DepartmentStatus.ACTIVE.value)
 
     # relationships
-    users: List["User"] = Relationship(back_populates="department")
-    invoices: List["Invoice"] = Relationship(back_populates="department")
-    budgets: List["Budget"] = Relationship(back_populates="department")
+    users: Optional[List["User"]] = Relationship(back_populates="department")
+    invoices: Optional[List["Invoice"]] = Relationship(back_populates="department")
+    budgets: Optional[List["Budget"]] = Relationship(back_populates="department")
 
     def __repr__(self) -> str:
         return f"<Department: {self.model_dump()}>"

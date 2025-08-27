@@ -1,8 +1,8 @@
-"""create tables
+"""roles and departments table revised
 
-Revision ID: 1df69bca0ced
-Revises: 
-Create Date: 2025-08-19 10:34:05.386593
+Revision ID: 6928968e47f8
+Revises: 4e1963e298d2
+Create Date: 2025-08-27 17:37:53.905777
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1df69bca0ced'
-down_revision: Union[str, None] = None
+revision: str = '6928968e47f8'
+down_revision: Union[str, None] = '4e1963e298d2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

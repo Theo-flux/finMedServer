@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -12,7 +14,7 @@ from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import InActive, NotFound, UserEmailExists, WrongCredentials
 
 from .authentication import Authentication
-from .schemas import ChangePwdModel, TokenModel, TokenUserModel
+from .schemas import ChangePwdModel, TokenModel, TokenUserModel, UserType
 
 user_controller = UserController()
 role_controller = RoleController()
@@ -80,38 +82,65 @@ class AuthController:
         if user is None:
             raise NotFound("User doesn't exist.")
 
-        if Authentication.verify_password(login_data.password, user.password):
-            user_data = TokenUserModel.model_validate(
-                {
-                    "id": user.id,
-                    "uid": user.uid,
-                    "staff_no": user.staff_no,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                    "email": user.email,
-                    "status": user.status,
-                    "role_uid": user.role_uid,
-                    "department_uid": user.department_uid,
-                }
-            )
+        if login_data.password:
+            if not user.password:
+                return JSONResponse(
+                    status_code=status.HTTP_200_OK,
+                    content=ServerRespModel[TokenModel](
+                        data={
+                            "access_token": "",
+                            "refresh_token": "",
+                            "user_type": UserType.NEW_USER.value,
+                        },
+                        message="user token generated.",
+                    ).model_dump(),
+                )
 
-            access_token = Authentication.create_token(user_data)
-            refresh_token = Authentication.create_token(user_data=user_data, refresh=True)
+            if Authentication.verify_password(login_data.password, user.password):
+                user_data = TokenUserModel.model_validate(
+                    {
+                        "id": user.id,
+                        "uid": user.uid,
+                        "staff_no": user.staff_no,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "email": user.email,
+                        "status": user.status,
+                        "role_uid": user.role_uid,
+                        "department_uid": user.department_uid,
+                    }
+                )
 
+                access_token = Authentication.create_token(user_data)
+                refresh_token = Authentication.create_token(user_data=user_data, refresh=True)
+
+                return JSONResponse(
+                    status_code=status.HTTP_200_OK,
+                    content=ServerRespModel[TokenModel](
+                        data={
+                            "access_token": access_token,
+                            "refresh_token": refresh_token,
+                            "user_type": UserType.OLD_USER.value,
+                        },
+                        message="user token generated.",
+                    ).model_dump(),
+                )
+
+            raise WrongCredentials()
+        else:
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content=ServerRespModel[TokenModel](
                     data={
-                        "access_token": access_token,
-                        "refresh_token": refresh_token,
+                        "access_token": "",
+                        "refresh_token": "",
+                        "user_type": UserType.OLD_USER.value if user.password else UserType.NEW_USER.value,
                     },
                     message="user token generated.",
                 ).model_dump(),
             )
 
-        raise WrongCredentials()
-
-    async def create_user(self, user_data: CreateUserModel, session: AsyncSession):
+    async def create_user(self, token_payload: Optional[dict], user_data: CreateUserModel, session: AsyncSession):
         user = user_data.model_dump()
 
         if await user_controller.get_user_by_email(user.get("email"), session):
@@ -125,7 +154,11 @@ class AuthController:
         if dept is None:
             raise InActive("Department is inactive.")
 
-        user["password"] = Authentication.generate_password_hash(user["password"])
+        if token_payload:
+            user["created_by_uid"] = token_payload["user"]["uid"]
+
+        if user.get("password"):
+            user["password"] = Authentication.generate_password_hash(user["password"])
 
         try:
             new_user = User(**user)
@@ -142,5 +175,5 @@ class AuthController:
 
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,
-            content=ServerRespModel[bool](data=True, message="Account created!").model_dump(),
+            content=ServerRespModel[bool](data=True, message="User created!").model_dump(),
         )
