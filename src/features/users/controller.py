@@ -1,12 +1,22 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
+from fastapi import status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
-from sqlmodel import select, update
+from sqlmodel import func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
+from src.features.roles.controller import RoleController
+from src.features.users.schemas import UserResponseModel, UserStatus
+from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
+from src.utils import get_current_and_total_pages
+from src.utils.exceptions import NotFound
 from src.utils.validators import is_email
+
+role_controller = RoleController()
 
 
 class UserController:
@@ -39,7 +49,9 @@ class UserController:
         return user
 
     async def get_user_by_uid(self, user_uid: uuid.UUID, session: AsyncSession):
-        statement = select(User).where(User.uid == user_uid)
+        statement = (
+            select(User).where(User.uid == user_uid).options(selectinload(User.department), selectinload(User.role))
+        )
         result = await session.exec(statement)
         user = result.first()
 
@@ -66,5 +78,72 @@ class UserController:
         await session.refresh(user)
         return user
 
-    async def get_all_users(self, session: AsyncSession):
-        pass
+    async def single_user(self, user_uid: uuid.UUID, session: AsyncSession):
+        user = await self.get_user_by_uid(user_uid=user_uid, session=session)
+
+        if not user:
+            raise NotFound("User not found")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[UserResponseModel](
+                data=UserResponseModel.model_validate(user), message="User retrieved!"
+            ).model_dump(),
+        )
+
+    async def get_users(
+        self,
+        user_status: Optional[UserStatus],
+        staff_no: Optional[str],
+        q: Optional[str],
+        limit: Optional[int],
+        offset: Optional[int],
+        session: AsyncSession,
+    ):
+        query = select(User).options(selectinload(User.role), selectinload(User.department))
+
+        if q:
+            search_term = f"%{q}"
+            query = query.where(
+                User.first_name.ilike(search_term)
+                | User.last_name.ilike(search_term)
+                | User.email.ilike(search_term)
+                | User.staff_no.ilike(search_term)
+            )
+
+        if staff_no:
+            query = query.where(User.staff_no == staff_no)
+
+        if user_status:
+            query = query.where(User.status == user_status)
+
+        count_query = select(func.count()).select_from(query.subquery())
+
+        total = await session.scalar(count_query)
+
+        query = query.order_by(User.created_at.desc()).offset(offset).limit(limit)
+
+        results = await session.exec(query)
+
+        users = results.all()
+        users_response = [UserResponseModel.model_validate(user) for user in users]
+        current_page, total_pages = get_current_and_total_pages(
+            limit=limit,
+            total=total,
+            offset=offset,
+        )
+        paginated_users_response = PaginatedResponseModel.model_validate(
+            {
+                "items": users_response,
+                "pagination": PaginationModel(
+                    total=total, current_page=current_page, limit=limit, total_pages=total_pages
+                ),
+            }
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[PaginatedResponseModel[UserResponseModel]](
+                data=paginated_users_response, message="Users retrieved successfully"
+            ).model_dump(),
+        )
