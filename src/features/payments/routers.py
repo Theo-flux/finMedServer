@@ -1,5 +1,5 @@
-import uuid
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -23,7 +23,7 @@ payment_controller = PaymentController()
 
 @payment_router.post("/{invoice_uid}", response_model=ServerRespModel[bool])
 async def create_payment(
-    invoice_uid: uuid.UUID,
+    invoice_uid: UUID,
     data: CreatePaymentModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
@@ -60,7 +60,7 @@ async def get_payments(
 
 @payment_router.get("/{payment_uid}", response_model=ServerRespModel[SinglePaymentResponseModel])
 async def get_single_payment(
-    payment_uid: uuid.UUID,
+    payment_uid: UUID,
     _: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
@@ -69,7 +69,7 @@ async def get_single_payment(
 
 @payment_router.delete("/{payment_uid}", response_model=ServerRespModel[bool])
 async def del_payment(
-    payment_uid: uuid.UUID,
+    payment_uid: UUID,
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
@@ -80,7 +80,7 @@ async def del_payment(
 
 @payment_router.patch("/{payment_uid}", response_model=ServerRespModel[bool])
 async def update_payment(
-    payment_uid: uuid.UUID,
+    payment_uid: UUID,
     data: UpdatePaymentModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),

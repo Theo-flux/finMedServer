@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -28,14 +28,14 @@ role_controller = RoleController()
 
 
 class PaymentController:
-    async def generate_payment_serial_no(self, payment_uid: uuid.UUID, session: AsyncSession):
+    async def generate_payment_serial_no(self, payment_uid: UUID, session: AsyncSession):
         payment = await self.get_payment_by_uid(payment_uid, session)
         serial_no = build_serial_no("Payment", payment.id)
         statement = update(Payment).where(Payment.uid == payment_uid).values(serial_no=serial_no)
 
         await session.exec(statement)
 
-    async def get_payment_by_uid(self, payment_invoice: uuid.UUID, session: AsyncSession):
+    async def get_payment_by_uid(self, payment_invoice: UUID, session: AsyncSession):
         statement = (
             select(Payment)
             .options(selectinload(Payment.user), selectinload(Payment.invoice))
@@ -45,7 +45,7 @@ class PaymentController:
 
         return result.first()
 
-    async def single_payment(self, payment_uid: uuid.UUID, session: AsyncSession):
+    async def single_payment(self, payment_uid: UUID, session: AsyncSession):
         invoice = await self.get_payment_by_uid(payment_uid=payment_uid, session=session)
 
         if invoice is None:
@@ -126,7 +126,7 @@ class PaymentController:
         )
 
     async def create_payment(
-        self, invoice_uid: uuid.UUID, token_payload: dict, data: CreatePaymentModel, session: AsyncSession
+        self, invoice_uid: UUID, token_payload: dict, data: CreatePaymentModel, session: AsyncSession
     ):
         payment = data.model_dump()
         payment["user_uid"] = token_payload["user"]["uid"]
@@ -163,7 +163,7 @@ class PaymentController:
             raise e
 
     async def update_payment(
-        self, payment_uid: uuid.UUID, token_payload: dict, data: UpdatePaymentModel, session: AsyncSession
+        self, payment_uid: UUID, token_payload: dict, data: UpdatePaymentModel, session: AsyncSession
     ):
         payment_to_update = await self.get_payment_by_uid(payment_uid, session)
 
@@ -202,7 +202,7 @@ class PaymentController:
 
     async def delete_payment(
         self,
-        payment_uid: uuid.UUID,
+        payment_uid: UUID,
         token_payload: dict,
         session: AsyncSession,
     ):

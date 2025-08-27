@@ -1,7 +1,7 @@
-import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
+from uuid import UUID, uuid4
 
 from sqlalchemy import ForeignKey
 from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
@@ -15,7 +15,7 @@ class Payment(SQLModel, table=True):
     __tablename__ = "payments"
 
     id: Optional[int] = Field(primary_key=True, default=None)
-    uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
     serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(
@@ -30,8 +30,8 @@ class Payment(SQLModel, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    invoice_uid: uuid.UUID = Field(sa_column=Column("invoice_uid", ForeignKey("invoices.uid", ondelete="CASCADE")))
-    user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
+    invoice_uid: UUID = Field(sa_column=Column("invoice_uid", ForeignKey("invoices.uid", ondelete="CASCADE")))
+    user_uid: Optional[UUID] = Field(foreign_key="users.uid")
     payment_method: str = Field(...)
     amount_received: Decimal = Field(sa_column=Column(Numeric(12, 2)))
     reference_number: Optional[str] = Field(default="")

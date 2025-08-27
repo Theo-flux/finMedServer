@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -14,7 +14,7 @@ from src.utils.exceptions import NotFound, ResourceExists
 
 
 class DeptController:
-    async def get_dept_by_uid(self, dept_uid: uuid.UUID, session: AsyncSession):
+    async def get_dept_by_uid(self, dept_uid: UUID, session: AsyncSession):
         statement = select(Department).where(Department.uid == dept_uid)
         result = await session.exec(statement=statement)
 
@@ -29,7 +29,7 @@ class DeptController:
     def is_dept_active(self, dept: Department):
         return False if dept.status == DepartmentStatus.IN_ACTIVE.value else True
 
-    async def dept_exists(self, dept_uid: uuid.UUID, session: AsyncSession):
+    async def dept_exists(self, dept_uid: UUID, session: AsyncSession):
         dept = await self.get_dept_by_uid(dept_uid, session)
 
         if dept is None:
@@ -56,7 +56,7 @@ class DeptController:
             content=ServerRespModel[bool](data=True, message="Dept. created!").model_dump(),
         )
 
-    async def update_dept(self, dept_uid: uuid.UUID, data: UpdateDept, session: AsyncSession):
+    async def update_dept(self, dept_uid: UUID, data: UpdateDept, session: AsyncSession):
         dept_to_update = await self.get_dept_by_uid(dept_uid, session)
 
         if dept_to_update is None:
@@ -92,7 +92,7 @@ class DeptController:
             ).model_dump(),
         )
 
-    async def single_dept(self, dept_uid: uuid.UUID, session: AsyncSession):
+    async def single_dept(self, dept_uid: UUID, session: AsyncSession):
         role = await self.get_dept_by_uid(dept_uid, session)
 
         if role is None:

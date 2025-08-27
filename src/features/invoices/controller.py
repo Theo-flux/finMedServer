@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -29,14 +29,14 @@ role_controller = RoleController()
 
 
 class InvoiceController:
-    async def generate_invoice_serial_no(self, invoice_uid: uuid.UUID, session: AsyncSession):
+    async def generate_invoice_serial_no(self, invoice_uid: UUID, session: AsyncSession):
         invoice = await self.get_invoice_by_uid(invoice_uid, session)
         serial_no = build_serial_no("Invoice", invoice.id)
         statement = update(Invoice).where(Invoice.uid == invoice_uid).values(serial_no=serial_no)
 
         await session.exec(statement)
 
-    async def get_invoice_by_uid(self, invoice_uid: uuid.UUID, session: AsyncSession):
+    async def get_invoice_by_uid(self, invoice_uid: UUID, session: AsyncSession):
         statement = (
             select(Invoice)
             .options(
@@ -51,13 +51,13 @@ class InvoiceController:
 
         return result.first()
 
-    async def get_invoice_with_payments(self, invoice_uid: uuid.UUID, session: AsyncSession):
+    async def get_invoice_with_payments(self, invoice_uid: UUID, session: AsyncSession):
         statement = select(Invoice).options(selectinload(Invoice.payments)).where(Invoice.uid == invoice_uid)
         result = await session.exec(statement=statement)
 
         return result.first()
 
-    async def single_invoice(self, invoice_uid: uuid.UUID, session: AsyncSession):
+    async def single_invoice(self, invoice_uid: UUID, session: AsyncSession):
         invoice = await self.get_invoice_by_uid(invoice_uid=invoice_uid, session=session)
 
         if invoice is None:
@@ -159,7 +159,7 @@ class InvoiceController:
             raise e
 
     async def update_invoice(
-        self, invoice_uid: uuid.UUID, token_payload: dict, data: UpdateInvoiceModel, session: AsyncSession
+        self, invoice_uid: UUID, token_payload: dict, data: UpdateInvoiceModel, session: AsyncSession
     ):
         invoice_to_update = await self.get_invoice_with_payments(invoice_uid, session)
 
@@ -204,7 +204,7 @@ class InvoiceController:
 
     async def get_invoice_payments(
         self,
-        invoice_uid: uuid.UUID,
+        invoice_uid: UUID,
         limit: int,
         token_payload: dict,
         session: AsyncSession,
@@ -261,7 +261,7 @@ class InvoiceController:
 
     async def delete_invoice(
         self,
-        invoice_uid: uuid.UUID,
+        invoice_uid: UUID,
         token_payload: dict,
         session: AsyncSession,
     ):

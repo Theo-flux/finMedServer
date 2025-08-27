@@ -1,8 +1,8 @@
-import uuid
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -27,15 +27,15 @@ class CreateBudgetModel(BaseModel):
     gross_amount: int = Field(ge=1000)
     title: str
     short_description: str
-    department_uid: uuid.UUID
+    department_uid: UUID
 
 
 class EditBudgetModel(BaseModel):
     gross_amount: Optional[int] = None
     title: Optional[str] = None
     short_description: Optional[str] = None
-    department_uid: Optional[uuid.UUID] = None
-    assignee_uid: Optional[uuid.UUID] = None
+    department_uid: Optional[UUID] = None
+    assignee_uid: Optional[UUID] = None
     status: Optional[BudgetStatus] = None
     availability: Optional[BudgetStatus] = None
 
@@ -45,10 +45,10 @@ class BudgetResponseModel(DBModel):
     serial_no: str
     received_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
-    department_uid: uuid.UUID
-    user_uid: uuid.UUID
-    approver_uid: Optional[uuid.UUID] = None
-    assignee_uid: Optional[uuid.UUID] = None
+    department_uid: UUID
+    user_uid: UUID
+    approver_uid: Optional[UUID] = None
+    assignee_uid: Optional[UUID] = None
     status: str
     availability: str
     gross_amount: Decimal
@@ -62,7 +62,7 @@ class BudgetResponseModel(DBModel):
             return value.isoformat()
 
     @field_serializer("department_uid", "user_uid", "approver_uid", "assignee_uid")
-    def serialize_buuid(self, value: uuid.UUID, _info):
+    def serialize_buuid(self, value: UUID, _info):
         if value:
             return str(value)
 

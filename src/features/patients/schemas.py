@@ -1,6 +1,6 @@
-import uuid
 from enum import StrEnum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
@@ -48,11 +48,11 @@ class PatientResponseModel(DBModel):
     last_name: str
     other_name: str
     gender: str
-    user_uid: uuid.UUID
+    user_uid: UUID
     phone_number: str
     hospital_id: str
     patient_type: str
 
     @field_serializer("user_uid")
-    def serialize_puuid(self, value: uuid.UUID, _info):
+    def serialize_puuid(self, value: UUID, _info):
         return str(value)

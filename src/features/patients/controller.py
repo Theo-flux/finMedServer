@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -15,7 +15,7 @@ from src.utils.exceptions import InvalidToken, NotFound, ResourceExists
 
 
 class PatientController:
-    async def get_patient_by_uid(self, patient_uid: uuid.UUID, session: AsyncSession):
+    async def get_patient_by_uid(self, patient_uid: UUID, session: AsyncSession):
         statement = select(Patient).where(Patient.uid == patient_uid)
         result = await session.exec(statement=statement)
 
@@ -27,7 +27,7 @@ class PatientController:
 
         return result.first()
 
-    async def single_patient(self, patient_uid: uuid.UUID, session: AsyncSession):
+    async def single_patient(self, patient_uid: UUID, session: AsyncSession):
         exp = await self.get_patient_by_uid(patient_uid=patient_uid, session=session)
 
         if exp is None:
@@ -118,7 +118,7 @@ class PatientController:
             await session.rollback()
             raise e
 
-    async def update_patient(self, patient_uid: uuid.UUID, data: UpdatePatientModel, session: AsyncSession):
+    async def update_patient(self, patient_uid: UUID, data: UpdatePatientModel, session: AsyncSession):
         patient_to_update = await self.get_patient_by_uid(patient_uid=patient_uid, session=session)
 
         if patient_to_update is None:
@@ -139,7 +139,7 @@ class PatientController:
 
     async def delete_patient(
         self,
-        patient_uid: uuid.UUID,
+        patient_uid: UUID,
         token_payload: dict,
         session: AsyncSession,
     ):

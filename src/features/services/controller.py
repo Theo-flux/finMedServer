@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -14,7 +14,7 @@ from src.utils.exceptions import NotFound, ResourceExists
 
 
 class ServiceController:
-    async def get_service_by_uid(self, service_uid: uuid.UUID, session: AsyncSession):
+    async def get_service_by_uid(self, service_uid: UUID, session: AsyncSession):
         statement = select(Service).where(Service.uid == service_uid)
         result = await session.exec(statement=statement)
 
@@ -31,7 +31,7 @@ class ServiceController:
     def is_service_active(self, service: Service):
         return False if service.status == ServiceStatus.IN_ACTIVE.value else True
 
-    async def service_exists(self, service_uid: uuid.UUID, session: AsyncSession):
+    async def service_exists(self, service_uid: UUID, session: AsyncSession):
         service = self.get_service_by_uid(service_uid, session)
 
         if service is None:
@@ -55,7 +55,7 @@ class ServiceController:
             content=ServerRespModel[bool](data=True, message="Service created!").model_dump(),
         )
 
-    async def update_service(self, service_uid: uuid.UUID, data: UpdateServiceModel, session: AsyncSession):
+    async def update_service(self, service_uid: UUID, data: UpdateServiceModel, session: AsyncSession):
         service_to_update = await self.get_service_by_uid(service_uid, session)
 
         if service_to_update is None:
@@ -91,7 +91,7 @@ class ServiceController:
             ).model_dump(),
         )
 
-    async def single_service(self, service_uid: uuid.UUID, session: AsyncSession):
+    async def single_service(self, service_uid: UUID, session: AsyncSession):
         service = await self.get_service_by_uid(service_uid, session)
 
         if service is None:

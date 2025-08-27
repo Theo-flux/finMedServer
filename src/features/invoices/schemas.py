@@ -1,8 +1,8 @@
-import uuid
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -33,9 +33,9 @@ class CreateInvoiceModel(BaseModel):
     tax_percent: Optional[Decimal] = Field(default=Decimal("0.0"))
     discount_percent: Optional[Decimal] = Field(default=Decimal("0.0"))
     invoice_type: InvoiceType
-    department_uid: Optional[uuid.UUID] = None
-    service_uid: Optional[uuid.UUID] = None
-    patient_uid: Optional[uuid.UUID] = None
+    department_uid: Optional[UUID] = None
+    service_uid: Optional[UUID] = None
+    patient_uid: Optional[UUID] = None
 
 
 class UpdateInvoiceModel(BaseModel):
@@ -44,9 +44,9 @@ class UpdateInvoiceModel(BaseModel):
     tax_percent: Optional[Decimal] = None
     discount_percent: Optional[Decimal] = None
     invoice_type: Optional[InvoiceType] = None
-    department_uid: Optional[uuid.UUID] = None
-    service_uid: Optional[uuid.UUID] = None
-    patient_uid: Optional[uuid.UUID] = None
+    department_uid: Optional[UUID] = None
+    service_uid: Optional[UUID] = None
+    patient_uid: Optional[UUID] = None
 
 
 class InvoiceResponseModel(DBModel):
@@ -60,13 +60,13 @@ class InvoiceResponseModel(DBModel):
     tax_percent: Decimal
     discount_percent: Decimal
     net_amount_due: Decimal
-    department_uid: Optional[uuid.UUID] = None
-    service_uid: Optional[uuid.UUID] = None
-    patient_uid: Optional[uuid.UUID] = None
-    user_uid: Optional[uuid.UUID] = None
+    department_uid: Optional[UUID] = None
+    service_uid: Optional[UUID] = None
+    patient_uid: Optional[UUID] = None
+    user_uid: Optional[UUID] = None
 
     @field_serializer("department_uid", "user_uid", "service_uid", "patient_uid")
-    def serialize_uuids(self, value: uuid.UUID, _info):
+    def serialize_uuids(self, value: UUID, _info):
         if value:
             return str(value)
 

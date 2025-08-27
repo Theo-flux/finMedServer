@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
+from uuid import UUID, uuid4
 
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
@@ -16,7 +16,7 @@ class Role(SQLModel, table=True):
         primary_key=True,
         default=None,
     )
-    uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),

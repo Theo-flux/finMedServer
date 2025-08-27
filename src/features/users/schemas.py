@@ -1,6 +1,6 @@
-import uuid
 from enum import StrEnum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -21,8 +21,8 @@ class CreateUserModel(BaseModel):
     last_name: str = Field(...)
     email: EmailStr = Field(...)
     password: Optional[str] = Field(default="")
-    department_uid: uuid.UUID = Field(...)
-    role_uid: uuid.UUID = Field(...)
+    department_uid: UUID = Field(...)
+    role_uid: UUID = Field(...)
 
     @field_validator("email")
     @classmethod

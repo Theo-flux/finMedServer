@@ -1,6 +1,6 @@
 import logging
-import uuid
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 import jwt
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -38,7 +38,7 @@ class Authentication:
                 + (expiry if expiry is not None else timedelta(seconds=Authentication.ACCESS_TOKEN_EXPIRY))
             ).timestamp()
         )
-        payload["jti"] = str(uuid.uuid4())
+        payload["jti"] = str(uuid4())
         payload["refresh"] = refresh
         token = jwt.encode(payload=payload, key=Config.JWT_SECRET, algorithm=Config.JWT_ALGORITHM)
 

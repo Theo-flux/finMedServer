@@ -1,7 +1,7 @@
-import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
+from uuid import UUID, uuid4
 
 from sqlmodel import Column, DateTime, Field, ForeignKey, Numeric, Relationship, SQLModel
 
@@ -15,7 +15,7 @@ class Expenses(SQLModel, table=True):
     __tablename__ = "expenses"
 
     id: Optional[int] = Field(primary_key=True, default=None)
-    uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
     serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
@@ -27,11 +27,11 @@ class Expenses(SQLModel, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    budget_uid: uuid.UUID = Field(
+    budget_uid: UUID = Field(
         sa_column=Column("budget_uid", ForeignKey("budgets.uid", ondelete="CASCADE"), nullable=False)
     )
-    expenses_category_uid: uuid.UUID = Field(foreign_key="expenses_category.uid")
-    user_uid: uuid.UUID = Field(foreign_key="users.uid")
+    expenses_category_uid: UUID = Field(foreign_key="expenses_category.uid")
+    user_uid: UUID = Field(foreign_key="users.uid")
     amount_spent: Decimal = Field(sa_column=Column(Numeric(12, 2)))
     title: str = Field(...)
     short_description: str = Field(...)

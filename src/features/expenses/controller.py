@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -26,14 +26,14 @@ category_controller = ExpCategoryController()
 
 
 class ExpensesController:
-    async def generate_exp_serial_no(self, exp_uid: uuid.UUID, session: AsyncSession):
+    async def generate_exp_serial_no(self, exp_uid: UUID, session: AsyncSession):
         exp = await self.get_exp_by_uid(exp_uid, session)
         serial_no = build_serial_no("Expenses", exp.id)
         statement = update(Expenses).where(Expenses.uid == exp_uid).values(serial_no=serial_no)
 
         await session.exec(statement)
 
-    async def get_exp_by_uid(self, exp_uid: uuid.UUID, session: AsyncSession):
+    async def get_exp_by_uid(self, exp_uid: UUID, session: AsyncSession):
         statement = (
             select(Expenses)
             .options(
@@ -48,7 +48,7 @@ class ExpensesController:
 
         return exp
 
-    async def single_exp(self, exp_uid: uuid.UUID, session: AsyncSession):
+    async def single_exp(self, exp_uid: UUID, session: AsyncSession):
         exp = await self.get_exp_by_uid(exp_uid=exp_uid, session=session)
 
         if exp is None:
@@ -97,7 +97,7 @@ class ExpensesController:
             await session.rollback()
             raise e
 
-    async def update_exp(self, exp_uid: uuid.UUID, token_payload: dict, data: EditExpenseModel, session: AsyncSession):
+    async def update_exp(self, exp_uid: UUID, token_payload: dict, data: EditExpenseModel, session: AsyncSession):
         exp_to_update = await self.get_exp_by_uid(exp_uid, session)
 
         if exp_to_update is None:
@@ -125,7 +125,7 @@ class ExpensesController:
         token_payload: dict,
         session: AsyncSession,
         offset: int,
-        budget_uid: Optional[uuid.UUID] = None,
+        budget_uid: Optional[UUID] = None,
         q: Optional[str] = None,
     ):
         user_uid = token_payload["user"]["uid"]
@@ -180,7 +180,7 @@ class ExpensesController:
 
     async def delete_exp(
         self,
-        exp_uid: uuid.UUID,
+        exp_uid: UUID,
         token_payload: dict,
         session: AsyncSession,
     ):

@@ -1,7 +1,7 @@
-import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
+from uuid import UUID, uuid4
 
 from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
 
@@ -17,7 +17,7 @@ class Budget(SQLModel, table=True):
     __tablename__ = "budgets"
 
     id: Optional[int] = Field(primary_key=True, default=None)
-    uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
     serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
     created_at: datetime = Field(sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)))
     updated_at: datetime = Field(
@@ -29,10 +29,10 @@ class Budget(SQLModel, table=True):
     )
     received_at: Optional[datetime] = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
     approved_at: Optional[datetime] = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
-    department_uid: uuid.UUID = Field(foreign_key="departments.uid")
-    user_uid: uuid.UUID = Field(foreign_key="users.uid")
-    approver_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
-    assignee_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
+    department_uid: UUID = Field(foreign_key="departments.uid")
+    user_uid: UUID = Field(foreign_key="users.uid")
+    approver_uid: Optional[UUID] = Field(foreign_key="users.uid")
+    assignee_uid: Optional[UUID] = Field(foreign_key="users.uid")
     status: Optional[str] = Field(default=BudgetStatus.PENDING.value)
     availability: str = Field(default=BudgetAvailability.AVAILABLE.value)
     gross_amount: Decimal = Field(sa_column=Column(Numeric(12, 2)))

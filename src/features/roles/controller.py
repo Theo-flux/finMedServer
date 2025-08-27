@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -14,7 +14,7 @@ from src.utils.exceptions import NotFound, ResourceExists
 
 
 class RoleController:
-    async def get_role_by_uid(self, role_uid: uuid.UUID, session: AsyncSession):
+    async def get_role_by_uid(self, role_uid: UUID, session: AsyncSession):
         statement = select(Role).where(Role.uid == role_uid)
         result = await session.exec(statement=statement)
 
@@ -31,7 +31,7 @@ class RoleController:
     def is_role_active(self, role: Role):
         return False if role.status == RoleStatus.IN_ACTIVE.value else True
 
-    async def role_exists(self, role_uid: uuid.UUID, session: AsyncSession):
+    async def role_exists(self, role_uid: UUID, session: AsyncSession):
         role = await self.get_role_by_uid(role_uid, session)
 
         if role is None:
@@ -39,7 +39,7 @@ class RoleController:
 
         return self.is_role_active(role)
 
-    async def is_role_admin(self, role_uid: uuid.UUID, session: AsyncSession):
+    async def is_role_admin(self, role_uid: UUID, session: AsyncSession):
         role_by_uid = await self.get_role_by_uid(role_uid, session)
 
         if role_by_uid is None:
@@ -65,7 +65,7 @@ class RoleController:
             content=ServerRespModel[bool](data=True, message="Role created!").model_dump(),
         )
 
-    async def update_role(self, role_uid: uuid.UUID, data: UpdateRole, session: AsyncSession):
+    async def update_role(self, role_uid: UUID, data: UpdateRole, session: AsyncSession):
         role_to_update = await self.get_role_by_uid(role_uid, session)
 
         if role_to_update is None:
@@ -99,7 +99,7 @@ class RoleController:
             ).model_dump(),
         )
 
-    async def single_role(self, role_uid: uuid.UUID, session: AsyncSession):
+    async def single_role(self, role_uid: UUID, session: AsyncSession):
         role = await self.get_role_by_uid(role_uid, session)
 
         if role is None:

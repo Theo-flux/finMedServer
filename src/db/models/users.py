@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
+from uuid import UUID, uuid4
 
 from pydantic import EmailStr
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
@@ -21,7 +21,7 @@ class User(SQLModel, table=True):
     __tablename__ = "users"
 
     id: Optional[int] = Field(primary_key=True, default=None)
-    uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),
@@ -36,9 +36,9 @@ class User(SQLModel, table=True):
         ),
     )
     staff_no: Optional[str] = Field(nullable=True, index=True, unique=True)
-    created_by_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid", default=None)
-    department_uid: uuid.UUID = Field(foreign_key="departments.uid")
-    role_uid: uuid.UUID = Field(foreign_key="roles.uid")
+    created_by_uid: Optional[UUID] = Field(foreign_key="users.uid", default=None)
+    department_uid: UUID = Field(foreign_key="departments.uid")
+    role_uid: UUID = Field(foreign_key="roles.uid")
     first_name: str = Field(...)
     last_name: str = Field(...)
     user_name: Optional[str] = Field(default="")

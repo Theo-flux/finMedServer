@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -25,14 +25,14 @@ role_controller = RoleController()
 
 
 class BudgetController:
-    async def generate_budget_serial_no(self, budget_uid: uuid.UUID, session: AsyncSession):
+    async def generate_budget_serial_no(self, budget_uid: UUID, session: AsyncSession):
         budget = await self.get_budget_by_uid(budget_uid, session)
         serial_no = build_serial_no("Budget", budget.id)
         statement = update(Budget).where(Budget.uid == budget_uid).values(serial_no=serial_no)
 
         await session.exec(statement)
 
-    async def get_budget_by_uid(self, budget_uid: uuid.UUID, session: AsyncSession):
+    async def get_budget_by_uid(self, budget_uid: UUID, session: AsyncSession):
         statement = (
             select(Budget)
             .options(
@@ -48,7 +48,7 @@ class BudgetController:
 
         return budget
 
-    async def single_budget(self, budget_uid: uuid.UUID, session: AsyncSession):
+    async def single_budget(self, budget_uid: UUID, session: AsyncSession):
         budget = await self.get_budget_by_uid(budget_uid=budget_uid, session=session)
 
         if budget is None:
@@ -84,9 +84,7 @@ class BudgetController:
             await session.rollback()
             raise e
 
-    async def update_budget(
-        self, budget_uid: uuid.UUID, token_payload: dict, data: EditBudgetModel, session: AsyncSession
-    ):
+    async def update_budget(self, budget_uid: UUID, token_payload: dict, data: EditBudgetModel, session: AsyncSession):
         budget_to_update = await self.get_budget_by_uid(budget_uid, session)
 
         if budget_to_update is None:
@@ -225,7 +223,7 @@ class BudgetController:
 
     async def delete_budget(
         self,
-        budget_uid: uuid.UUID,
+        budget_uid: UUID,
         token_payload: dict,
         session: AsyncSession,
     ):

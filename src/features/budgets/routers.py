@@ -1,5 +1,5 @@
-import uuid
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -72,7 +72,7 @@ async def get_assigned_budgets(
 
 @budget_router.get("/{budget_uid}")
 async def get_budget_by_uid(
-    budget_uid: uuid.UUID,
+    budget_uid: UUID,
     _: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
@@ -81,7 +81,7 @@ async def get_budget_by_uid(
 
 @budget_router.delete("/{budget_uid}")
 async def del_budget_by_uid(
-    budget_uid: uuid.UUID,
+    budget_uid: UUID,
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
@@ -90,7 +90,7 @@ async def del_budget_by_uid(
 
 @budget_router.patch("/{budget_uid}", response_model=ServerRespModel[bool])
 async def update_budget(
-    budget_uid: uuid.UUID,
+    budget_uid: UUID,
     data: EditBudgetModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),

@@ -1,5 +1,5 @@
-import uuid
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -38,7 +38,7 @@ async def get_users(
 
 @user_router.get("/{user_uid}")
 async def get_user_by_uid(
-    user_uid: uuid.UUID,
+    user_uid: UUID,
     _: dict = Depends(RoleBasedTokenBearer(["admin"])),
     session: AsyncSession = Depends(get_session),
 ):

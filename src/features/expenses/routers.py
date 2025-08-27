@@ -1,5 +1,5 @@
-import uuid
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -32,7 +32,7 @@ async def create_expense(
 @expense_router.get("", response_model=ServerRespModel[PaginatedResponseModel[ExpensesResponseModel]])
 async def get_expenses(
     q: Optional[str] = Query(default=None),
-    budget_uid: Optional[uuid.UUID] = Query(default=None),
+    budget_uid: Optional[UUID] = Query(default=None),
     limit: Optional[int] = Query(
         default=Config.DEFAULT_PAGE_LIMIT, ge=Config.DEFAULT_PAGE_MIN_LIMIT, le=Config.DEFAULT_PAGE_MAX_LIMIT
     ),
@@ -47,7 +47,7 @@ async def get_expenses(
 
 @expense_router.get("/{exp_uid}", response_model=ServerRespModel[SingleExpenseResponseModel])
 async def get_exp_by_uid(
-    exp_uid: uuid.UUID,
+    exp_uid: UUID,
     _: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
@@ -56,7 +56,7 @@ async def get_exp_by_uid(
 
 @expense_router.delete("/{exp_uid}", response_model=ServerRespModel[bool])
 async def del_exp_by_uid(
-    exp_uid: uuid.UUID,
+    exp_uid: UUID,
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
@@ -65,7 +65,7 @@ async def del_exp_by_uid(
 
 @expense_router.patch("/{exp_uid}", response_model=ServerRespModel[bool])
 async def update_exp(
-    exp_uid: uuid.UUID,
+    exp_uid: UUID,
     data: EditExpenseModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),

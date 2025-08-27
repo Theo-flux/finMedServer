@@ -1,5 +1,5 @@
-import uuid
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -19,7 +19,7 @@ async def get_all_depts(session: AsyncSession = Depends(get_session)):
 
 
 @dept_router.get("/{dept_uid}", response_model=ServerRespModel[DeptResponseModel])
-async def get_single_dept(dept_uid: uuid.UUID, session: AsyncSession = Depends(get_session)):
+async def get_single_dept(dept_uid: UUID, session: AsyncSession = Depends(get_session)):
     return await dept_controller.single_dept(dept_uid, session)
 
 
@@ -29,5 +29,5 @@ async def add_dept(dept: CreateDept, session: AsyncSession = Depends(get_session
 
 
 @dept_router.patch("/{dept_uid}")
-async def update_role(dept_uid: uuid.UUID, data: UpdateDept, session: AsyncSession = Depends(get_session)):
+async def update_role(dept_uid: UUID, data: UpdateDept, session: AsyncSession = Depends(get_session)):
     return await dept_controller.update_dept(dept_uid, data, session)

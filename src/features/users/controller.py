@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -20,7 +20,7 @@ role_controller = RoleController()
 
 
 class UserController:
-    async def generate_staff_no(self, dept: str, user_uid: uuid.UUID, session: AsyncSession):
+    async def generate_staff_no(self, dept: str, user_uid: UUID, session: AsyncSession):
         user = await self.get_user_by_uid(user_uid, session)
 
         dept_prefix = dept.upper().ljust(3, "D")[:3]
@@ -48,7 +48,7 @@ class UserController:
 
         return user
 
-    async def get_user_by_uid(self, user_uid: uuid.UUID, session: AsyncSession):
+    async def get_user_by_uid(self, user_uid: UUID, session: AsyncSession):
         statement = (
             select(User).where(User.uid == user_uid).options(selectinload(User.department), selectinload(User.role))
         )
@@ -78,7 +78,7 @@ class UserController:
         await session.refresh(user)
         return user
 
-    async def single_user(self, user_uid: uuid.UUID, session: AsyncSession):
+    async def single_user(self, user_uid: UUID, session: AsyncSession):
         user = await self.get_user_by_uid(user_uid=user_uid, session=session)
 
         if not user:

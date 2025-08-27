@@ -1,7 +1,7 @@
-import uuid
 from datetime import datetime
 from enum import StrEnum
 from typing import TypeVar
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_serializer
 from sqlalchemy.sql.selectable import Select
@@ -16,7 +16,7 @@ class Gender(StrEnum):
 
 
 class DBModel(BaseModel):
-    uid: uuid.UUID
+    uid: UUID
     created_at: datetime
     updated_at: datetime
 
@@ -25,7 +25,7 @@ class DBModel(BaseModel):
         return value.isoformat()
 
     @field_serializer("uid")
-    def serialize_uuid(self, value: uuid.UUID, _info):
+    def serialize_uuid(self, value: UUID, _info):
         return str(value)
 
     model_config = ConfigDict(from_attributes=True)

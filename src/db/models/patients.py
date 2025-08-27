@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
+from uuid import UUID, uuid4
 
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
@@ -13,7 +13,7 @@ class Patient(SQLModel, table=True):
     __tablename__ = "patients"
 
     id: Optional[int] = Field(primary_key=True, default=None)
-    uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
     )
@@ -25,7 +25,7 @@ class Patient(SQLModel, table=True):
         ),
     )
     hospital_id: str = Field(nullable=False, index=True, unique=True)
-    user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid")
+    user_uid: Optional[UUID] = Field(foreign_key="users.uid")
     first_name: str = Field(...)
     last_name: str = Field(...)
     other_name: Optional[str] = Field(default="")

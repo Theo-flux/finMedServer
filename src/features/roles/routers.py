@@ -1,5 +1,5 @@
-import uuid
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -19,7 +19,7 @@ async def get_all_roles(session: AsyncSession = Depends(get_session)):
 
 
 @role_router.get("/{role_uid}", response_model=ServerRespModel[RoleResponseModel])
-async def get_single_role(role_uid: uuid.UUID, session: AsyncSession = Depends(get_session)):
+async def get_single_role(role_uid: UUID, session: AsyncSession = Depends(get_session)):
     return await role_service.single_role(role_uid, session)
 
 
@@ -29,5 +29,5 @@ async def add_role(role: CreateRole, session: AsyncSession = Depends(get_session
 
 
 @role_router.patch("/{role_uid}")
-async def update_role(role_uid: uuid.UUID, data: UpdateRole, session: AsyncSession = Depends(get_session)):
+async def update_role(role_uid: UUID, data: UpdateRole, session: AsyncSession = Depends(get_session)):
     return await role_service.update_role(role_uid, data, session)

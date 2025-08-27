@@ -1,8 +1,8 @@
-import uuid
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -35,15 +35,15 @@ class PaymentResponseModel(DBModel):
     id: int
     serial_no: str
     received_at: Optional[datetime] = None
-    invoice_uid: uuid.UUID
-    user_uid: uuid.UUID
+    invoice_uid: UUID
+    user_uid: UUID
     payment_method: str
     amount_received: Decimal
     reference_number: str
     note: str
 
     @field_serializer("invoice_uid", "user_uid")
-    def serialize_uuids(self, value: uuid.UUID, _info):
+    def serialize_uuids(self, value: UUID, _info):
         if value:
             return str(value)
 

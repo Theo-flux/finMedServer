@@ -1,5 +1,5 @@
-import uuid
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -42,7 +42,7 @@ async def get_patient(
 
 @patients_router.get("/{patient_uid}", response_model=ServerRespModel[PatientResponseModel])
 async def get_patient_by_uid(
-    patient_uid: uuid.UUID,
+    patient_uid: UUID,
     _: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
@@ -51,7 +51,7 @@ async def get_patient_by_uid(
 
 @patients_router.patch("/{patient_uid}", response_model=ServerRespModel[bool])
 async def update_patient(
-    patient_uid: uuid.UUID,
+    patient_uid: UUID,
     data: UpdatePatientModel = Body(...),
     _: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),

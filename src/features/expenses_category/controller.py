@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -19,7 +19,7 @@ from src.utils.exceptions import NotFound, ResourceExists
 
 
 class ExpCategoryController:
-    async def get_category_by_uid(self, category_uid: uuid.UUID, session: AsyncSession):
+    async def get_category_by_uid(self, category_uid: UUID, session: AsyncSession):
         statement = select(ExpensesCategory).where(ExpensesCategory.uid == category_uid)
         result = await session.exec(statement=statement)
 
@@ -36,7 +36,7 @@ class ExpCategoryController:
     def is_category_active(self, exp_category: ExpensesCategory):
         return False if exp_category.status == ExpCategoryStatus.IN_ACTIVE.value else True
 
-    async def category_exists(self, category_uid: uuid.UUID, session: AsyncSession):
+    async def category_exists(self, category_uid: UUID, session: AsyncSession):
         category = self.get_category_by_uid(category_uid, session)
 
         if category is None:
@@ -60,7 +60,7 @@ class ExpCategoryController:
             content=ServerRespModel[bool](data=True, message="Expenses Category created!").model_dump(),
         )
 
-    async def update_category(self, category_uid: uuid.UUID, data: UpdateExpCategory, session: AsyncSession):
+    async def update_category(self, category_uid: UUID, data: UpdateExpCategory, session: AsyncSession):
         exp_to_exp = await self.get_category_by_uid(category_uid, session)
 
         if exp_to_exp is None:
@@ -98,7 +98,7 @@ class ExpCategoryController:
             ).model_dump(),
         )
 
-    async def single_category(self, category_uid: uuid.UUID, session: AsyncSession):
+    async def single_category(self, category_uid: UUID, session: AsyncSession):
         category = await self.get_category_by_uid(category_uid, session)
 
         if category is None:

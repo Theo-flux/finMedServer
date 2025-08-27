@@ -1,7 +1,7 @@
-import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
+from uuid import UUID, uuid4
 
 from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
 
@@ -19,7 +19,7 @@ class Invoice(SQLModel, table=True):
     __tablename__ = "invoices"
 
     id: Optional[int] = Field(primary_key=True, default=None)
-    uid: uuid.UUID = Field(default_factory=uuid.uuid4, nullable=False, index=True, unique=True)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
     serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
@@ -32,10 +32,10 @@ class Invoice(SQLModel, table=True):
         ),
     )
     invoiced_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
-    service_uid: Optional[uuid.UUID] = Field(foreign_key="services.uid", nullable=True)
-    patient_uid: Optional[uuid.UUID] = Field(foreign_key="patients.uid", nullable=True)
-    user_uid: Optional[uuid.UUID] = Field(foreign_key="users.uid", nullable=True)
-    department_uid: Optional[uuid.UUID] = Field(foreign_key="departments.uid", nullable=True)
+    service_uid: Optional[UUID] = Field(foreign_key="services.uid", nullable=True)
+    patient_uid: Optional[UUID] = Field(foreign_key="patients.uid", nullable=True)
+    user_uid: Optional[UUID] = Field(foreign_key="users.uid", nullable=True)
+    department_uid: Optional[UUID] = Field(foreign_key="departments.uid", nullable=True)
     invoice_type: str = Field(...)
     title: str = Field(...)
     status: Optional[str] = Field(

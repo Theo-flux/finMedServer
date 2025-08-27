@@ -1,6 +1,6 @@
-import uuid
 from decimal import Decimal
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -13,8 +13,8 @@ class EditExpenseModel(BaseModel):
     amount_spent: Optional[int] = Field(gt=0, default=None)
     title: Optional[str] = None
     short_description: Optional[str] = None
-    budget_uid: Optional[uuid.UUID] = None
-    expenses_category_uid: Optional[uuid.UUID] = None
+    budget_uid: Optional[UUID] = None
+    expenses_category_uid: Optional[UUID] = None
 
 
 class CreateExpensesModel(BaseModel):
@@ -22,16 +22,16 @@ class CreateExpensesModel(BaseModel):
     title: str
     short_description: str
     note: Optional[str] = Field(default="")
-    budget_uid: uuid.UUID
-    expenses_category_uid: uuid.UUID
+    budget_uid: UUID
+    expenses_category_uid: UUID
 
 
 class ExpensesResponseModel(DBModel):
     id: int
     serial_no: str
-    budget_uid: uuid.UUID
-    expenses_category_uid: uuid.UUID
-    user_uid: uuid.UUID
+    budget_uid: UUID
+    expenses_category_uid: UUID
+    user_uid: UUID
     amount_spent: Decimal
     title: str
     short_description: str
@@ -40,7 +40,7 @@ class ExpensesResponseModel(DBModel):
     budget: BudgetResponseModel
 
     @field_serializer("budget_uid", "expenses_category_uid", "user_uid")
-    def serialize_buuid(self, value: uuid.UUID, _info):
+    def serialize_buuid(self, value: UUID, _info):
         if value:
             return str(value)
 

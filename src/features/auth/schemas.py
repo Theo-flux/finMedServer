@@ -1,5 +1,5 @@
-import uuid
 from enum import StrEnum
+from uuid import UUID
 
 from pydantic import BaseModel, field_serializer, field_validator
 
@@ -47,15 +47,15 @@ class LoginResModel(TokenModel):
 
 class TokenUserModel(BaseModel):
     id: int
-    uid: uuid.UUID
+    uid: UUID
     staff_no: str
     first_name: str
     last_name: str
     email: str
     status: str
-    role_uid: uuid.UUID
-    department_uid: uuid.UUID
+    role_uid: UUID
+    department_uid: UUID
 
     @field_serializer("uid", "role_uid", "department_uid")
-    def serialize_uuid(self, value: uuid.UUID, _info):
+    def serialize_uuid(self, value: UUID, _info):
         return str(value)

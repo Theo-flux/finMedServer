@@ -1,5 +1,5 @@
-import uuid
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -19,7 +19,7 @@ async def get_all_categories(session: AsyncSession = Depends(get_session)):
 
 
 @category_router.get("/{category_uid}", response_model=ServerRespModel[ServiceResponseModel])
-async def get_single_role(category_uid: uuid.UUID, session: AsyncSession = Depends(get_session)):
+async def get_single_role(category_uid: UUID, session: AsyncSession = Depends(get_session)):
     return await category_controller.single_category(category_uid, session)
 
 
@@ -29,7 +29,5 @@ async def add_category(category: CreateServiceModel, session: AsyncSession = Dep
 
 
 @category_router.patch("/{category_uid}")
-async def update_category(
-    service_uid: uuid.UUID, data: UpdateServiceModel, session: AsyncSession = Depends(get_session)
-):
+async def update_category(service_uid: UUID, data: UpdateServiceModel, session: AsyncSession = Depends(get_session)):
     return await category_controller.update_category(service_uid, data, session)
