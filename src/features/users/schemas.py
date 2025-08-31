@@ -31,21 +31,14 @@ class CreateUserModel(BaseModel):
 
 
 class LoginUserModel(BaseModel):
-    email: EmailStr = Field(...)
+    email_or_staff_no: str = Field(...)
     password: Optional[str] = None
 
-    @field_validator("email")
+    @field_validator("email_or_staff_no")
     @classmethod
-    def validate_email(cls, value):
+    def validate_email_or_staff_no(cls, value: str):
         if not value.strip():
-            raise ValueError("Email can't not be empty")
-        return email_validator(value)
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, value):
-        if not value.strip():
-            raise ValueError("Password can't not be empty")
+            raise ValueError("Email or Staff Number cannot be empty")
         return value
 
 

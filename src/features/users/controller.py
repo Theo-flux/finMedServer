@@ -41,6 +41,17 @@ class UserController:
 
         return user
 
+    async def get_user_by_staff_no(self, staff_no: str, session: AsyncSession):
+        statement = (
+            select(User)
+            .options(selectinload(User.department), selectinload(User.role))
+            .where(User.staff_no == staff_no.lower())
+        )
+        result = await session.exec(statement=statement)
+        user = result.first()
+
+        return user
+
     async def get_user_by_phone(self, phone_number: str, session: AsyncSession):
         statement = select(User).where(User.phone_number == phone_number)
         result = await session.exec(statement)
