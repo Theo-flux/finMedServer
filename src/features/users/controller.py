@@ -45,7 +45,7 @@ class UserController:
         statement = (
             select(User)
             .options(selectinload(User.department), selectinload(User.role))
-            .where(User.staff_no == staff_no.lower())
+            .where(User.staff_no == staff_no)
         )
         result = await session.exec(statement=statement)
         user = result.first()
