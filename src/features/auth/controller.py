@@ -120,6 +120,8 @@ class AuthController:
                 access_token = Authentication.create_token(user_data)
                 refresh_token = Authentication.create_token(user_data=user_data, refresh=True)
 
+                await user_controller.update_last_login(user=user, session=session)
+
                 return JSONResponse(
                     status_code=status.HTTP_200_OK,
                     content=ServerRespModel[TokenModel](

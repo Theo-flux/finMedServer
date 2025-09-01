@@ -47,6 +47,12 @@ class User(SQLModel, table=True):
     password: Optional[str] = Field(default="")
     avatar: Optional[str] = Field(default="")
     status: Optional[str] = Field(default=UserStatus.IN_ACTIVE.value)
+    last_login: Optional[datetime] = Field(
+        sa_column=Column(
+            DateTime(timezone=True),
+            default=None,
+        )
+    )
 
     # relationship
     created_by_user: Optional["User"] = Relationship(

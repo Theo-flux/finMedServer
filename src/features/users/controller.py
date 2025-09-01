@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
 from src.features.roles.controller import RoleController
-from src.features.users.schemas import UserResponseModel, UserStatus
+from src.features.users.schemas import UpdateUserModel, UserResponseModel, UserStatus
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import get_current_and_total_pages
 from src.utils.exceptions import NotFound
@@ -77,8 +77,16 @@ class UserController:
 
         return False if user is None else True
 
-    async def update_user(self, user: User, user_data: dict, session: AsyncSession):
+    async def update_last_login(self, user: User, session: AsyncSession):
+        setattr(user, "last_login", datetime.now(timezone.utc))
+
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+    async def update_user(self, user: User, user_data: UpdateUserModel, session: AsyncSession):
         allowed_fields = ["first_name", "last_name", "password"]
+        user_data = user_data.model_dump(exclude_none=True)
 
         for field in allowed_fields:
             value = user_data.get(field)

@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 from typing import Optional
 from uuid import UUID
@@ -58,5 +59,9 @@ class UserResponseModel(DBModel):
 class UpdateUserModel(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    is_email_verified: Optional[bool] = None
-    is_phone_number_verified: Optional[bool] = None
+    department_uid: Optional[UUID] = None
+    role_uid: Optional[UUID] = None
+    email: Optional[EmailStr] = None
+    avatar: Optional[str] = None
+    status: Optional[str] = None
+    last_login: Optional[datetime] = None
