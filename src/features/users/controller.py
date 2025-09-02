@@ -10,11 +10,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
 from src.features.roles.controller import RoleController
-from src.features.users.schemas import UpdateUserModel, UserResponseModel, UserStatus
+from src.features.users.schemas import UserResponseModel, UserStatus
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import get_current_and_total_pages
 from src.utils.exceptions import NotFound
-from src.utils.validators import is_email
+from src.utils.validators import email_validator, is_email
 
 role_controller = RoleController()
 
@@ -68,6 +68,16 @@ class UserController:
 
         return user
 
+    async def get__user_by_mail_or_staff_no(self, email_or_staff_no: str, session: AsyncSession):
+        user = None
+        if is_email(email_or_staff_no):
+            email_validator(email_or_staff_no)
+            user = await self.get_user_by_email(email_or_staff_no, session)
+        else:
+            user = await self.get_user_by_staff_no(email_or_staff_no, session)
+
+        return user
+
     async def user_exists(self, email_or_phone: str, session: AsyncSession):
         user = (
             self.get_user_by_email(email_or_phone, session)
@@ -84,9 +94,8 @@ class UserController:
         await session.refresh(user)
         return user
 
-    async def update_user(self, user: User, user_data: UpdateUserModel, session: AsyncSession):
+    async def update_user(self, user: User, user_data: User, session: AsyncSession):
         allowed_fields = ["first_name", "last_name", "password"]
-        user_data = user_data.model_dump(exclude_none=True)
 
         for field in allowed_fields:
             value = user_data.get(field)

@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_serializer, field_validator
 
+from src.features.config import EmailOrStaffNoModel
 from src.utils.validators import email_validator
 
 
@@ -24,25 +25,14 @@ class ResetPwdModel(BaseModel):
     new_password: str
 
 
-class ChangePwdModel(BaseModel):
+class ChangePwdModel(EmailOrStaffNoModel):
     new_password: str
-    email: str
-
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, value):
-        return email_validator(value)
 
 
 class TokenModel(BaseModel):
     access_token: str
     refresh_token: str
     user_type: UserType
-
-
-class LoginResModel(TokenModel):
-    is_email_verified: bool
-    is_phone_number_verified: bool
 
 
 class TokenUserModel(BaseModel):

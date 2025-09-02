@@ -12,7 +12,6 @@ from src.features.users.controller import UserController
 from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResponseModel
 from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import InActive, NotFound, UserEmailExists, WrongCredentials
-from src.utils.validators import email_validator, is_email
 
 from .authentication import Authentication
 from .schemas import ChangePwdModel, TokenModel, TokenUserModel, UserType
@@ -61,7 +60,9 @@ class AuthController:
         )
 
     async def change_pwd(self, data: ChangePwdModel, session: AsyncSession):
-        user = await user_controller.get_user_by_email(email=data.email, session=session)
+        user = await user_controller.get__user_by_mail_or_staff_no(
+            email_or_staff_no=data.email_or_staff_no, session=session
+        )
 
         if not user:
             raise NotFound("User doesn't exist.")
@@ -78,12 +79,9 @@ class AuthController:
         )
 
     async def login_user(self, login_data: LoginUserModel, session: AsyncSession):
-        user = None
-        if is_email(login_data.email_or_staff_no):
-            email_validator(login_data.email_or_staff_no)
-            user = await user_controller.get_user_by_email(login_data.email_or_staff_no, session)
-        else:
-            user = await user_controller.get_user_by_staff_no(login_data.email_or_staff_no, session)
+        user = await user_controller.get__user_by_mail_or_staff_no(
+            email_or_staff_no=login_data.email_or_staff_no, session=session
+        )
 
         if not user:
             raise NotFound("User doesn't exist.")

@@ -3,9 +3,9 @@ from enum import StrEnum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_serializer, field_validator
 
-from src.features.config import DBModel
+from src.features.config import DBModel, EmailOrStaffNoModel
 from src.features.departments.schemas import DeptResponseModel
 from src.features.roles.schemas import RoleResponseModel
 from src.utils.validators import email_validator
@@ -31,16 +31,8 @@ class CreateUserModel(BaseModel):
         return email_validator(value)
 
 
-class LoginUserModel(BaseModel):
-    email_or_staff_no: str = Field(...)
+class LoginUserModel(EmailOrStaffNoModel):
     password: Optional[str] = None
-
-    @field_validator("email_or_staff_no")
-    @classmethod
-    def validate_email_or_staff_no(cls, value: str):
-        if not value.strip():
-            raise ValueError("Email or Staff Number cannot be empty")
-        return value
 
 
 class UserResponseModel(DBModel):
@@ -52,8 +44,14 @@ class UserResponseModel(DBModel):
     email: str
     status: str
     phone_number: Optional[str]
+    last_login: Optional[datetime]
     role: RoleResponseModel
     department: DeptResponseModel
+
+    @field_serializer("last_login")
+    def serialize_dt(self, value: datetime, _info):
+        if value:
+            return value.isoformat()
 
 
 class UpdateUserModel(BaseModel):

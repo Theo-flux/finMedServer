@@ -1,20 +1,23 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import RoleBasedTokenBearer
 from src.features.users.controller import UserController
-from src.features.users.schemas import UserStatus
+from src.features.users.schemas import UserResponseModel, UserStatus
+from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 user_router = APIRouter()
 user_controller = UserController()
 
 
-@user_router.get("/")
+@user_router.get(
+    "/", status_code=status.HTTP_200_OK, response_model=ServerRespModel[PaginatedResponseModel[UserResponseModel]]
+)
 async def get_users(
     user_status: Optional[UserStatus] = Query(default=None),
     staff_no: Optional[str] = Query(default=None),
@@ -36,7 +39,11 @@ async def get_users(
     )
 
 
-@user_router.get("/{user_uid}")
+@user_router.get(
+    "/{user_uid}",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[UserResponseModel],
+)
 async def get_user_by_uid(
     user_uid: UUID,
     _: dict = Depends(RoleBasedTokenBearer(["admin"])),

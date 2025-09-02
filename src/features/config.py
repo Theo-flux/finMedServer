@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 from sqlalchemy.sql.selectable import Select
 
 T = TypeVar("T")
@@ -27,6 +27,19 @@ class DBModel(BaseModel):
     @field_serializer("uid")
     def serialize_uuid(self, value: UUID, _info):
         return str(value)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EmailOrStaffNoModel(BaseModel):
+    email_or_staff_no: str = Field(...)
+
+    @field_validator("email_or_staff_no")
+    @classmethod
+    def validate_email_or_staff_no(cls, value: str):
+        if not value.strip():
+            raise ValueError("Email or Staff Number cannot be empty")
+        return value
 
     model_config = ConfigDict(from_attributes=True)
 
