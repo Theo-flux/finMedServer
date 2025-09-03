@@ -49,7 +49,7 @@ class UserResponseModel(DBModel):
     department: DeptResponseModel
 
     @field_serializer("last_login")
-    def serialize_dt(self, value: datetime, _info):
+    def serialize_last_login(self, value: datetime, _info):
         if value:
             return value.isoformat()
 
