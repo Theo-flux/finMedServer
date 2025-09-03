@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -9,17 +9,14 @@ from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.budgets import Budget
-from src.features.budgets.schemas import (
-    BudgetResponseModel,
-    CreateBudgetModel,
-    EditBudgetModel,
-    SingleBudgetResponseModel,
-)
+from src.db.models.expenses import Expenses
+from src.features.budgets.schemas import CreateBudgetModel, SingleBudgetResponseModel, UpdateBudgetModel
 from src.features.config import SelectOfScalar
+from src.features.expenses.schemas import SingleExpenseResponseModel
 from src.features.roles.controller import RoleController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
-from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
+from src.utils.exceptions import BadRequest, InsufficientPermissions, InvalidToken, NotFound
 
 role_controller = RoleController()
 
@@ -47,6 +44,12 @@ class BudgetController:
         budget = result.first()
 
         return budget
+
+    async def get_budget_with_expenses(self, budget_uid: UUID, session: AsyncSession):
+        statement = select(Budget).options(selectinload(Budget.expenses)).where(Budget.uid == budget_uid)
+        result = await session.exec(statement=statement)
+
+        return result.first()
 
     async def single_budget(self, budget_uid: UUID, session: AsyncSession):
         budget = await self.get_budget_by_uid(budget_uid=budget_uid, session=session)
@@ -84,8 +87,10 @@ class BudgetController:
             await session.rollback()
             raise e
 
-    async def update_budget(self, budget_uid: UUID, token_payload: dict, data: EditBudgetModel, session: AsyncSession):
-        budget_to_update = await self.get_budget_by_uid(budget_uid, session)
+    async def update_budget(
+        self, budget_uid: UUID, token_payload: dict, data: UpdateBudgetModel, session: AsyncSession
+    ):
+        budget_to_update = await self.get_budget_with_expenses(budget_uid, session)
 
         if budget_to_update is None:
             raise NotFound("Budget doesn't exist")
@@ -94,16 +99,39 @@ class BudgetController:
             raise InsufficientPermissions("You don't have the permission to update this budget!")
 
         valid_attrs = data.model_dump(exclude_none=True)
-        if valid_attrs:
-            valid_attrs["updated_at"] = datetime.now()
+        if not valid_attrs:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="No changes to update").model_dump(),
+            )
+
+        financial_fields = {"gross_amount"}
+        valid_attrs["updated_at"] = datetime.now(timezone.utc)
+
+        if any(field in valid_attrs for field in financial_fields):
+            new_gross_amount = valid_attrs.get("gross_amount")
+
+            if new_gross_amount and new_gross_amount < budget_to_update.total_expenses:
+                raise BadRequest("New budget amount cannot be lower than existing expenses!")
+
+            if new_gross_amount:
+                valid_attrs["amount_remaining"] = new_gross_amount - budget_to_update.total_expenses
+
+        for field, value in valid_attrs.items():
+            setattr(budget_to_update, field, value)
+
+        try:
             statement = update(Budget).where(Budget.uid == budget_uid).values(**valid_attrs)
             await session.exec(statement=statement)
             await session.commit()
             await session.refresh(budget_to_update)
+        except Exception as e:
+            await session.rollback()
+            raise BadRequest(f"Failed to update budget: {str(e)}")
 
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
-            content=ServerRespModel[bool](data=True, message="Budget updated!").model_dump(),
+            content=ServerRespModel[bool](data=True, message="Budget updated successfully!").model_dump(),
         )
 
     async def get_budgets(
@@ -137,7 +165,7 @@ class BudgetController:
 
         results = await session.exec(query)
         budgets = results.all()
-        budgets_response = [BudgetResponseModel.model_validate(budget) for budget in budgets]
+        budgets_response = [SingleBudgetResponseModel.model_validate(budget) for budget in budgets]
         current_page, total_pages = get_current_and_total_pages(
             limit=limit,
             total=total,
@@ -154,7 +182,7 @@ class BudgetController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[PaginatedResponseModel[BudgetResponseModel]](
+            content=ServerRespModel[PaginatedResponseModel[SingleBudgetResponseModel]](
                 data=paginated_budget, message="Budgets retrieved successfully"
             ).model_dump(),
         )
@@ -175,7 +203,12 @@ class BudgetController:
         if not user_uid or not role_uid:
             raise InvalidToken()
 
-        query = select(Budget)
+        query = select(Budget).options(
+            selectinload(Budget.department),
+            selectinload(Budget.user),
+            selectinload(Budget.approver),
+            selectinload(Budget.assignee),
+        )
 
         if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
             query = query.where(Budget.user_uid == user_uid)
@@ -206,7 +239,12 @@ class BudgetController:
         if not user_uid or not role_uid:
             raise InvalidToken()
 
-        query = select(Budget)
+        query = select(Budget).options(
+            selectinload(Budget.department),
+            selectinload(Budget.user),
+            selectinload(Budget.approver),
+            selectinload(Budget.assignee),
+        )
 
         if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
             query = query.where(Budget.assignee_uid == user_uid)
@@ -219,6 +257,62 @@ class BudgetController:
             session=session,
             budget_availability=budget_availability,
             budget_status=budget_status,
+        )
+
+    async def get_budget_expenses(
+        self,
+        budget_uid: UUID,
+        q: Optional[str],
+        limit: int,
+        offset: int,
+        expenses_category_uid: Optional[UUID],
+        token_payload: dict,
+        session: AsyncSession,
+    ):
+        user_uid = token_payload["user"]["uid"]
+        if not user_uid:
+            raise InvalidToken()
+
+        query = select(Expenses).options(selectinload(Expenses.user)).where(Expenses.budget_uid == budget_uid)
+
+        if q:
+            query = query.where(
+                Expenses.title.ilike(f"%{q}")
+                | Expenses.serial_no.ilike(f"%{q}")
+                | Expenses.note.ilike(f"%{q}")
+                | Expenses.short_description.ilike(f"%{q}")
+            )
+
+        if expenses_category_uid:
+            query = query.where(Expenses.expenses_category_uid == expenses_category_uid)
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total = await session.scalar(count_query)
+
+        query = query.order_by(Expenses.created_at.desc()).offset(offset).limit(limit)
+        results = await session.exec(query)
+        budget_expenses = results.all()
+        budget_expenses_response = [SingleExpenseResponseModel.model_validate(expense) for expense in budget_expenses]
+        current_page, total_pages = get_current_and_total_pages(
+            limit=limit,
+            total=total,
+            offset=offset,
+        )
+
+        paginated_invoice_payments = PaginatedResponseModel.model_validate(
+            {
+                "items": budget_expenses_response,
+                "pagination": PaginationModel(
+                    total=total, current_page=current_page, limit=limit, total_pages=total_pages
+                ),
+            }
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[PaginatedResponseModel[SingleExpenseResponseModel]](
+                data=paginated_invoice_payments, message="Budget Expenses retrieved successfully"
+            ).model_dump(),
         )
 
     async def delete_budget(

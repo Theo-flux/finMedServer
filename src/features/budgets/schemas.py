@@ -30,7 +30,7 @@ class CreateBudgetModel(BaseModel):
     department_uid: UUID
 
 
-class EditBudgetModel(BaseModel):
+class UpdateBudgetModel(BaseModel):
     gross_amount: Optional[int] = None
     title: Optional[str] = None
     short_description: Optional[str] = None

@@ -141,7 +141,6 @@ class InvoiceController:
                 if not patient:
                     raise NotFound("Patient doesn't exist!")
 
-            print(invoice)
             new_invoice = Invoice(**invoice)
             new_invoice.net_amount_due = new_invoice.calculate_net_amount_due()
             session.add(new_invoice)
@@ -175,7 +174,6 @@ class InvoiceController:
         valid_attrs = data.model_dump(exclude_none=True)
         if valid_attrs:
             financial_fields = {"gross_amount", "tax_percent", "discount_percent"}
-            print("Payments count: ", len(payments))
             if payments and any(field in valid_attrs for field in financial_fields):
                 raise BadRequest("Cannot update financial details of an invoice with existing payments")
 

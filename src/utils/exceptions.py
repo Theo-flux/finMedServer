@@ -110,7 +110,6 @@ def create_exception_handler(
     status_code: int, default_message: str = "An error occurred"
 ) -> Callable[[Request, Exception], JSONResponse]:
     async def exception_handler(req: Request, exc: AppException) -> JSONResponse:
-        # Use the custom message from the exception if available, otherwise use default
         message = getattr(exc, "message", None) or default_message
 
         return JSONResponse(

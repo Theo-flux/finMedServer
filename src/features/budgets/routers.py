@@ -1,21 +1,28 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
 from src.features.budgets.controller import BudgetController
-from src.features.budgets.schemas import BudgetAvailability, BudgetStatus, CreateBudgetModel, EditBudgetModel
-from src.misc.schemas import ServerRespModel
+from src.features.budgets.schemas import (
+    BudgetAvailability,
+    BudgetStatus,
+    CreateBudgetModel,
+    SingleBudgetResponseModel,
+    UpdateBudgetModel,
+)
+from src.features.expenses.schemas import SingleExpenseResponseModel
+from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 budget_router = APIRouter()
 budget_controller = BudgetController()
 
 
-@budget_router.post("", response_model=ServerRespModel[bool])
+@budget_router.post("", status_code=status.HTTP_201_CREATED, response_model=ServerRespModel[bool])
 async def create_budget(
     data: CreateBudgetModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
@@ -24,7 +31,11 @@ async def create_budget(
     return await budget_controller.create_budget(token_payload=token_payload, data=data, session=session)
 
 
-@budget_router.get("/user_budgets")
+@budget_router.get(
+    "/user_budgets",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[PaginatedResponseModel[SingleBudgetResponseModel]],
+)
 async def get_user_budgets(
     q: Optional[str] = Query(default=None),
     budget_status: Optional[BudgetStatus] = Query(default=None),
@@ -47,7 +58,11 @@ async def get_user_budgets(
     )
 
 
-@budget_router.get("/user_assigned_budgets")
+@budget_router.get(
+    "/user_assigned_budgets",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[PaginatedResponseModel[SingleBudgetResponseModel]],
+)
 async def get_assigned_budgets(
     q: Optional[str] = Query(default=None),
     budget_status: Optional[BudgetStatus] = Query(default=None),
@@ -70,7 +85,11 @@ async def get_assigned_budgets(
     )
 
 
-@budget_router.get("/{budget_uid}")
+@budget_router.get(
+    "/{budget_uid}",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[SingleBudgetResponseModel],
+)
 async def get_budget_by_uid(
     budget_uid: UUID,
     _: dict = Depends(AccessTokenBearer()),
@@ -79,7 +98,7 @@ async def get_budget_by_uid(
     return await budget_controller.single_budget(budget_uid=budget_uid, session=session)
 
 
-@budget_router.delete("/{budget_uid}")
+@budget_router.delete("/{budget_uid}", status_code=status.HTTP_200_OK, response_model=ServerRespModel[bool])
 async def del_budget_by_uid(
     budget_uid: UUID,
     token_payload: dict = Depends(AccessTokenBearer()),
@@ -88,13 +107,40 @@ async def del_budget_by_uid(
     return await budget_controller.delete_budget(budget_uid=budget_uid, token_payload=token_payload, session=session)
 
 
-@budget_router.patch("/{budget_uid}", response_model=ServerRespModel[bool])
+@budget_router.patch("/{budget_uid}", status_code=status.HTTP_200_OK, response_model=ServerRespModel[bool])
 async def update_budget(
     budget_uid: UUID,
-    data: EditBudgetModel = Body(...),
+    data: UpdateBudgetModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
     return await budget_controller.update_budget(
         budget_uid=budget_uid, token_payload=token_payload, data=data, session=session
+    )
+
+
+@budget_router.get(
+    "/{budget_uid}/expenses",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[PaginatedResponseModel[SingleExpenseResponseModel]],
+)
+async def get_budget_expenses(
+    budget_uid: UUID,
+    q: Optional[str] = Query(default=None),
+    limit: Optional[int] = Query(
+        default=Config.DEFAULT_PAGE_LIMIT, ge=Config.DEFAULT_PAGE_MIN_LIMIT, le=Config.DEFAULT_PAGE_MAX_LIMIT
+    ),
+    offset: Optional[int] = Query(default=Config.DEFAULT_PAGE_OFFSET, ge=Config.DEFAULT_PAGE_OFFSET),
+    expenses_category_uid: Optional[UUID] = Query(default=None),
+    token_payload: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.get_budget_expenses(
+        budget_uid=budget_uid,
+        q=q,
+        limit=limit,
+        offset=offset,
+        expenses_category_uid=expenses_category_uid,
+        token_payload=token_payload,
+        session=session,
     )
