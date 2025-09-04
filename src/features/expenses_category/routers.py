@@ -20,14 +20,14 @@ async def get_all_categories(session: AsyncSession = Depends(get_session)):
 
 @category_router.get("/{category_uid}", response_model=ServerRespModel[ServiceResponseModel])
 async def get_single_role(category_uid: UUID, session: AsyncSession = Depends(get_session)):
-    return await category_controller.single_category(category_uid, session)
+    return await category_controller.single_category(category_uid=category_uid, session=session)
 
 
 @category_router.post("")
 async def add_category(category: CreateServiceModel, session: AsyncSession = Depends(get_session)):
-    return await category_controller.create_category(category, session)
+    return await category_controller.create_category(category=category, session=session)
 
 
 @category_router.patch("/{category_uid}")
-async def update_category(service_uid: UUID, data: UpdateServiceModel, session: AsyncSession = Depends(get_session)):
-    return await category_controller.update_category(service_uid, data, session)
+async def update_category(category_uid: UUID, data: UpdateServiceModel, session: AsyncSession = Depends(get_session)):
+    return await category_controller.update_category(category_uid=category_uid, data=data, session=session)

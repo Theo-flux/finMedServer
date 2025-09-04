@@ -146,7 +146,6 @@ class PaymentController:
             await self.generate_payment_serial_no(new_payment.uid, session)
             await session.refresh(invoice_to_update)
 
-            invoice_to_update.net_amount_due = invoice_to_update.calculate_net_amount_due()
             invoice_to_update.status = invoice_to_update.payment_status
             session.add(invoice_to_update)
 
@@ -176,7 +175,6 @@ class PaymentController:
         valid_attrs = data.model_dump(exclude_none=True)
         if valid_attrs:
             valid_attrs["updated_at"] = datetime.now()
-            financial_fields = {"amount_received"}
 
             for field, value in valid_attrs.items():
                 setattr(payment_to_update, field, value)
@@ -187,10 +185,6 @@ class PaymentController:
 
             if not invoice_to_update:
                 raise NotFound("Invoice not found")
-
-            if any(field in valid_attrs for field in financial_fields):
-                invoice_to_update.net_amount_due = invoice_to_update.calculate_net_amount_due()
-                invoice_to_update.status = invoice_to_update.payment_status
 
             await session.commit()
             await session.refresh(invoice_to_update)
@@ -225,8 +219,6 @@ class PaymentController:
         await session.delete(payment_to_delete)
         await session.flush()
 
-        invoice_to_update.net_amount_due = invoice_to_update.calculate_net_amount_due()
-        invoice_to_update.status = invoice_to_update.payment_status
         session.add(invoice_to_update)
 
         await session.commit()

@@ -10,12 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.expenses import Expenses
 from src.features.budgets.controller import BudgetController
-from src.features.expenses.schemas import (
-    CreateExpensesModel,
-    EditExpenseModel,
-    ExpensesResponseModel,
-    SingleExpenseResponseModel,
-)
+from src.features.expenses.schemas import CreateExpensesModel, EditExpenseModel, SingleExpenseResponseModel
 from src.features.expenses_category.controller import ExpCategoryController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
@@ -134,7 +129,9 @@ class ExpensesController:
 
         query = (
             select(Expenses)
-            .options(selectinload(Expenses.budget), selectinload(Expenses.expenses_category))
+            .options(
+                selectinload(Expenses.budget), selectinload(Expenses.expenses_category), selectinload(Expenses.user)
+            )
             .where(Expenses.user_uid == user_uid)
         )
 
@@ -156,7 +153,7 @@ class ExpensesController:
 
         results = await session.exec(query)
         exps = results.all()
-        exps_response = [ExpensesResponseModel.model_validate(exp) for exp in exps]
+        exps_response = [SingleExpenseResponseModel.model_validate(exp) for exp in exps]
         current_page, total_pages = get_current_and_total_pages(
             limit=limit,
             total=total,
@@ -173,7 +170,7 @@ class ExpensesController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[PaginatedResponseModel[ExpensesResponseModel]](
+            content=ServerRespModel[PaginatedResponseModel[SingleExpenseResponseModel]](
                 data=paginated_exp, message="Expenses retrieved successfully"
             ).model_dump(),
         )

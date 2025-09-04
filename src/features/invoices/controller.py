@@ -142,7 +142,6 @@ class InvoiceController:
                     raise NotFound("Patient doesn't exist!")
 
             new_invoice = Invoice(**invoice)
-            new_invoice.net_amount_due = new_invoice.calculate_net_amount_due()
             session.add(new_invoice)
 
             await session.flush()
@@ -188,9 +187,6 @@ class InvoiceController:
 
             for field, value in valid_attrs.items():
                 setattr(invoice_to_update, field, value)
-
-            if any(field in valid_attrs for field in financial_fields):
-                invoice_to_update.net_amount_due = invoice_to_update.calculate_net_amount_due()
 
             await session.commit()
             await session.refresh(invoice_to_update)

@@ -129,3 +129,10 @@ class RoleBasedTokenBearer(AccessTokenBearer):
 class AdminTokenBearer(RoleBasedTokenBearer):
     def __init__(self, auto_error=True, check_role_status=True):
         super().__init__(required_roles=["admin"], auto_error=auto_error, check_role_status=check_role_status)
+
+
+class AllAdminsTokenBearer(RoleBasedTokenBearer):
+    def __init__(self, auto_error=True, check_role_status=True):
+        super().__init__(
+            required_roles=["admin", "subadmin"], auto_error=auto_error, check_role_status=check_role_status
+        )

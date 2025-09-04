@@ -6,7 +6,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.config import Config
 from src.db.main import get_session
-from src.features.auth.dependencies import AccessTokenBearer
+from src.features.auth.dependencies import AccessTokenBearer, AllAdminsTokenBearer
 from src.features.budgets.controller import BudgetController
 from src.features.budgets.schemas import (
     BudgetAvailability,
@@ -142,5 +142,41 @@ async def get_budget_expenses(
         offset=offset,
         expenses_category_uid=expenses_category_uid,
         token_payload=token_payload,
+        session=session,
+    )
+
+
+@budget_router.patch(
+    "/{budget_uid}/availability",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[bool],
+)
+async def update_budget_availability(
+    budget_uid: UUID,
+    availability: BudgetAvailability = Body(..., embed=True),
+    _: dict = Depends(AllAdminsTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.update_availability(
+        budget_uid=budget_uid,
+        availability=availability,
+        session=session,
+    )
+
+
+@budget_router.patch(
+    "/{budget_uid}/status",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[bool],
+)
+async def update_budget_status(
+    budget_uid: UUID,
+    budget_status: BudgetStatus = Body(..., embed=True),
+    _: dict = Depends(AllAdminsTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.update_status(
+        budget_uid=budget_uid,
+        budget_status=budget_status,
         session=session,
     )

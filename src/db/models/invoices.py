@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, ClassVar, List, Optional
 from uuid import UUID, uuid4
 
-from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel
+from sqlalchemy import case
+from sqlalchemy.orm import column_property
+from sqlmodel import Column, DateTime, Field, Numeric, Relationship, SQLModel, func, select
 
 from src.features.invoices.schemas import InvoiceStatus
 
@@ -15,43 +17,13 @@ if TYPE_CHECKING:
     from src.db.models.users import User
 
 
-class Invoice(SQLModel, table=True):
-    __tablename__ = "invoices"
+class BaseInvoice(SQLModel):
+    """Abstract base with computed SQL + Python props."""
 
-    id: Optional[int] = Field(primary_key=True, default=None)
-    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
-    serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
-    created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
-    )
-    updated_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            default=lambda: datetime.now(timezone.utc),
-            onupdate=lambda: datetime.now(timezone.utc),
-        ),
-    )
-    invoiced_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
-    service_uid: Optional[UUID] = Field(foreign_key="services.uid", nullable=True)
-    patient_uid: Optional[UUID] = Field(foreign_key="patients.uid", nullable=True)
-    user_uid: Optional[UUID] = Field(foreign_key="users.uid", nullable=True)
-    department_uid: Optional[UUID] = Field(foreign_key="departments.uid", nullable=True)
-    invoice_type: str = Field(...)
-    title: str = Field(...)
-    status: Optional[str] = Field(
-        sa_column=Column(default=InvoiceStatus.UNPAID.value, server_default=InvoiceStatus.UNPAID.value)
-    )
-    gross_amount: Decimal = Field(sa_column=Column(Numeric(12, 2)))
-    tax_percent: Optional[Decimal] = Field(sa_column=Column(Numeric(12, 2)), default=0.0)
-    discount_percent: Optional[Decimal] = Field(sa_column=Column(Numeric(12, 2)), default=0.0)
-    net_amount_due: Decimal = Field(sa_column=Column(Numeric(12, 2)))
+    __abstract__ = True
 
-    # relationships
-    user: "User" = Relationship(back_populates="invoices")
-    service: "Service" = Relationship(back_populates="invoices")
-    patient: "Patient" = Relationship(back_populates="invoices")
-    department: "Department" = Relationship(back_populates="invoices")
-    payments: List["Payment"] = Relationship(back_populates="invoice", cascade_delete=True)
+    # placeholder so Pydantic ignores it as a model field
+    net_amount_due: ClassVar[Decimal]
 
     @property
     def tax_amount(self) -> Decimal:
@@ -112,5 +84,72 @@ class Invoice(SQLModel, table=True):
         else:
             return InvoiceStatus.PARTIALLY_PAID
 
+
+class Invoice(BaseInvoice, table=True):
+    __tablename__ = "invoices"
+
+    id: Optional[int] = Field(primary_key=True, default=None)
+    uid: UUID = Field(default_factory=uuid4, nullable=False, index=True, unique=True)
+    serial_no: Optional[str] = Field(nullable=True, index=True, unique=True)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)),
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(
+            DateTime(timezone=True),
+            default=lambda: datetime.now(timezone.utc),
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
+    )
+    invoiced_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=True))
+    service_uid: Optional[UUID] = Field(foreign_key="services.uid", nullable=True)
+    patient_uid: Optional[UUID] = Field(foreign_key="patients.uid", nullable=True)
+    user_uid: Optional[UUID] = Field(foreign_key="users.uid", nullable=True)
+    department_uid: Optional[UUID] = Field(foreign_key="departments.uid", nullable=True)
+    invoice_type: str = Field(...)
+    title: str = Field(...)
+    gross_amount: Decimal = Field(sa_column=Column(Numeric(12, 2)))
+    tax_percent: Optional[Decimal] = Field(sa_column=Column(Numeric(12, 2)), default=0.0)
+    discount_percent: Optional[Decimal] = Field(sa_column=Column(Numeric(12, 2)), default=0.0)
+
+    # relationships
+    user: "User" = Relationship(back_populates="invoices")
+    service: "Service" = Relationship(back_populates="invoices")
+    patient: "Patient" = Relationship(back_populates="invoices")
+    department: "Department" = Relationship(back_populates="invoices")
+    payments: List["Payment"] = Relationship(back_populates="invoice", cascade_delete=True)
+
     def __repr__(self) -> str:
         return f"<Invoices: {self.model_dump()}>"
+
+
+from src.db.models.payments import Payment  # noqa
+
+Invoice.net_amount_due = column_property(
+    Invoice.gross_amount
+    + (Invoice.gross_amount * (Invoice.tax_percent / 100))
+    - (Invoice.gross_amount * (Invoice.tax_percent / 100) * (Invoice.discount_percent / 100))
+    - (
+        select(func.coalesce(func.sum(Payment.amount_received), 0))
+        .where(Payment.invoice_uid == Invoice.uid)
+        .correlate_except(Payment)
+        .scalar_subquery()
+    )
+)
+Invoice.status = column_property(
+    case(
+        (
+            Invoice.net_amount_due < 0,
+            InvoiceStatus.OVER_PAID.value,
+        ),
+        (
+            Invoice.net_amount_due == 0,
+            InvoiceStatus.PAID.value,
+        ),
+        (
+            Invoice.net_amount_due == Invoice.gross_amount,
+            InvoiceStatus.UNPAID.value,
+        ),
+        else_=InvoiceStatus.PARTIALLY_PAID.value,
+    )
+)

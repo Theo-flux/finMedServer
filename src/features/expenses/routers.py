@@ -8,12 +8,7 @@ from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
 from src.features.expenses.controller import ExpensesController
-from src.features.expenses.schemas import (
-    CreateExpensesModel,
-    EditExpenseModel,
-    ExpensesResponseModel,
-    SingleExpenseResponseModel,
-)
+from src.features.expenses.schemas import CreateExpensesModel, EditExpenseModel, SingleExpenseResponseModel
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 expense_router = APIRouter()
@@ -29,7 +24,7 @@ async def create_expense(
     return await expense_controller.create_exp(token_payload=token_payload, data=data, session=session)
 
 
-@expense_router.get("", response_model=ServerRespModel[PaginatedResponseModel[ExpensesResponseModel]])
+@expense_router.get("", response_model=ServerRespModel[PaginatedResponseModel[SingleExpenseResponseModel]])
 async def get_expenses(
     q: Optional[str] = Query(default=None),
     budget_uid: Optional[UUID] = Query(default=None),

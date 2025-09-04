@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.budgets import Budget
 from src.db.models.expenses import Expenses
-from src.features.budgets.schemas import CreateBudgetModel, SingleBudgetResponseModel, UpdateBudgetModel
+from src.features.budgets.schemas import BudgetStatus, CreateBudgetModel, SingleBudgetResponseModel, UpdateBudgetModel
 from src.features.config import SelectOfScalar
 from src.features.expenses.schemas import SingleExpenseResponseModel
 from src.features.roles.controller import RoleController
@@ -68,6 +68,10 @@ class BudgetController:
 
     async def create_budget(self, token_payload: dict, data: CreateBudgetModel, session: AsyncSession):
         budget = data.model_dump()
+        if await role_controller.is_role_admin(role_uid=token_payload["user"]["role_uid"], session=session):
+            budget["status"] = BudgetStatus.APPROVED.value
+            budget["approved_at"] = datetime.now(timezone.utc)
+
         budget["user_uid"] = token_payload["user"]["uid"]
 
         try:
@@ -114,9 +118,6 @@ class BudgetController:
             if new_gross_amount and new_gross_amount < budget_to_update.total_expenses:
                 raise BadRequest("New budget amount cannot be lower than existing expenses!")
 
-            if new_gross_amount:
-                valid_attrs["amount_remaining"] = new_gross_amount - budget_to_update.total_expenses
-
         for field, value in valid_attrs.items():
             setattr(budget_to_update, field, value)
 
@@ -144,6 +145,7 @@ class BudgetController:
         q: Optional[str] = None,
         offset: Optional[int] = None,
     ):
+
         if q:
             search_term = f"%{q}%"
             query = query.where(
@@ -199,6 +201,7 @@ class BudgetController:
     ):
         user_uid = token_payload["user"]["uid"]
         role_uid = token_payload["user"]["role_uid"]
+        department_uid = token_payload["user"]["department_uid"]
 
         if not user_uid or not role_uid:
             raise InvalidToken()
@@ -211,7 +214,12 @@ class BudgetController:
         )
 
         if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
-            query = query.where(Budget.user_uid == user_uid)
+            role = await role_controller.get_role_by_uid(role_uid=role_uid, session=session)
+
+            if role and role.name == "subadmin":
+                query = query.where(Budget.department_uid == department_uid)
+            else:
+                query = query.where(Budget.user_uid == user_uid)
 
         return await self.get_budgets(
             q=q,
@@ -273,7 +281,13 @@ class BudgetController:
         if not user_uid:
             raise InvalidToken()
 
-        query = select(Expenses).options(selectinload(Expenses.user)).where(Expenses.budget_uid == budget_uid)
+        query = (
+            select(Expenses)
+            .options(
+                selectinload(Expenses.budget), selectinload(Expenses.expenses_category), selectinload(Expenses.user)
+            )
+            .where(Expenses.budget_uid == budget_uid)
+        )
 
         if q:
             query = query.where(
@@ -338,3 +352,53 @@ class BudgetController:
             status_code=status.HTTP_200_OK,
             content=ServerRespModel[bool](data=True, message="Budget deleted successfully!").model_dump(),
         )
+
+    async def update_availability(self, budget_uid: UUID, availability: BudgetStatus, session: AsyncSession):
+        budget = await self.get_budget_by_uid(budget_uid, session)
+
+        if not budget:
+            raise NotFound("Budget not found!")
+
+        if budget.availability == availability.value:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget updated successfully!").model_dump(),
+            )
+
+        try:
+            statement = update(Budget).where(Budget.uid == budget_uid).values(availability=availability.value)
+            await session.exec(statement=statement)
+            await session.commit()
+
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget updated successfully!").model_dump(),
+            )
+        except Exception:
+            await session.rollback()
+            raise BadRequest("Failed to update budget availability")
+
+    async def update_status(self, budget_uid: UUID, budget_status: BudgetStatus, session: AsyncSession):
+        budget = await self.get_budget_by_uid(budget_uid, session)
+
+        if not budget:
+            raise NotFound("Budget not found!")
+
+        if budget.status == budget_status.value:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget updated successfully!").model_dump(),
+            )
+
+        try:
+            statement = update(Budget).where(Budget.uid == budget_uid).values(status=budget_status.value)
+            await session.exec(statement=statement)
+            await session.commit()
+
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget updated successfully!").model_dump(),
+            )
+        except Exception:
+            await session.rollback()
+            raise BadRequest("Failed to update budget status")

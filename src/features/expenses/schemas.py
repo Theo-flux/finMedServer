@@ -37,7 +37,6 @@ class ExpensesResponseModel(DBModel):
     short_description: str
     note: str
     expenses_category: ExpCategoryResponseModel
-    budget: BudgetResponseModel
 
     @field_serializer("budget_uid", "expenses_category_uid", "user_uid")
     def serialize_buuid(self, value: UUID, _info):
@@ -51,3 +50,5 @@ class ExpensesResponseModel(DBModel):
 
 class SingleExpenseResponseModel(ExpensesResponseModel):
     user: AbridgedUserResponseModel
+    expenses_category: ExpCategoryResponseModel
+    budget: BudgetResponseModel
