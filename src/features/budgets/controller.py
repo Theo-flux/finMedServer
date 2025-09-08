@@ -254,8 +254,7 @@ class BudgetController:
             selectinload(Budget.assignee),
         )
 
-        if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
-            query = query.where(Budget.assignee_uid == user_uid)
+        query = query.where(Budget.assignee_uid == user_uid)
 
         return await self.get_budgets(
             q=q,

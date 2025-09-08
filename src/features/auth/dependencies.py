@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Union
 
 from fastapi import Request
@@ -15,7 +16,9 @@ from src.utils.exceptions import (
     InsufficientPermissions,
     InvalidToken,
     NotFound,
+    RefreshTokenExpired,
     RefreshTokenRequired,
+    TokenExpired,
 )
 
 
@@ -26,11 +29,20 @@ class TokenBearer(HTTPBearer):
             auto_error=auto_error,
         )
 
-    def is_token_valid(self, token: str) -> bool:
+    async def is_token_valid(self, token: str) -> bool:
         try:
-            token = Authentication.decode_token(token)
-            return True
-        except Exception:
+            token_payload = Authentication.decode_token(token)
+
+            if await token_in_block_list(token_payload["jti"]):
+                raise InvalidToken()
+        except RefreshTokenExpired as e:
+            logging.warning(f"RefreshTokenExpired caught in is_token_valid: {e}")
+            raise
+        except TokenExpired as e:
+            logging.warning(f"TokenExpired caught in is_token_valid: {e}")
+            raise
+        except Exception as e:
+            logging.warning(f"Other exception in is_token_valid: {type(e).__name__}: {e}")
             return False
 
     async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
@@ -42,14 +54,9 @@ class TokenBearer(HTTPBearer):
         cred = await super().__call__(request)
         token = cred.credentials
 
-        if self.is_token_valid(token) is False:
-            raise InvalidToken()
+        self.is_token_valid(token)
 
         token_payload = Authentication.decode_token(token)
-
-        if await token_in_block_list(token_payload["jti"]):
-            raise InvalidToken()
-
         await self.verify_token_data(token_payload)
 
         return token_payload

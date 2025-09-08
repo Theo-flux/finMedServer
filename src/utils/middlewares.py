@@ -13,7 +13,14 @@ async def custom_context_middleware(request, call_next):
 
 def register_middlewares(app: FastAPI):
     app.add_middleware(
-        CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5174",
+            "http://localhost:3000",
+        ],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=True,
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
     app.add_middleware(BaseHTTPMiddleware, dispatch=custom_context_middleware)
