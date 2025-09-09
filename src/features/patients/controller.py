@@ -8,7 +8,9 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.models.invoices import Invoice
 from src.db.models.patients import Patient
+from src.features.invoices.schemas import InvoiceStatus, SingleInvoiceResponseModel
 from src.features.patients.schemas import (
     CreatePatientModel,
     PatientResponseModel,
@@ -124,6 +126,70 @@ class PatientController:
         except Exception as e:
             await session.rollback()
             raise e
+
+    async def get_patient_invoices(
+        self,
+        patient_uid: UUID,
+        limit: int,
+        token_payload: dict,
+        invoice_status: Optional[InvoiceStatus],
+        session: AsyncSession,
+        q: Optional[str] = None,
+        offset: Optional[int] = None,
+    ):
+        user_uid = token_payload["user"]["uid"]
+        role_uid = token_payload["user"]["role_uid"]
+
+        if not user_uid or not role_uid:
+            raise InvalidToken()
+
+        query = (
+            select(Invoice)
+            .options(
+                selectinload(Invoice.user),
+                selectinload(Invoice.service),
+                selectinload(Invoice.department),
+                selectinload(Invoice.patient).selectinload(Patient.user),
+            )
+            .where(Invoice.patient_uid == patient_uid)
+        )
+
+        if q:
+            search_term = f"%{q}%"
+            query = query.where(Invoice.title.ilike(search_term) | Invoice.serial_no.ilike(search_term))
+
+        if invoice_status:
+            query = query.where(Invoice.status == invoice_status)
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total = await session.scalar(count_query)
+
+        query = query.order_by(Invoice.created_at.desc()).offset(offset).limit(limit)
+
+        results = await session.exec(query)
+        invoices = results.all()
+        invoices_response = [SingleInvoiceResponseModel.model_validate(invoice) for invoice in invoices]
+
+        current_page, total_pages = get_current_and_total_pages(
+            limit=limit,
+            total=total,
+            offset=offset,
+        )
+        paginated_invoice = PaginatedResponseModel.model_validate(
+            {
+                "items": invoices_response,
+                "pagination": PaginationModel(
+                    total=total, current_page=current_page, limit=limit, total_pages=total_pages
+                ),
+            }
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[PaginatedResponseModel[SingleInvoiceResponseModel]](
+                data=paginated_invoice, message="Patient invoices retrieved successfully"
+            ).model_dump(),
+        )
 
     async def update_patient(self, patient_uid: UUID, data: UpdatePatientModel, session: AsyncSession):
         patient_to_update = await self.get_patient_by_uid(patient_uid=patient_uid, session=session)
