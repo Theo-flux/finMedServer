@@ -15,11 +15,9 @@ from .schemas import TokenUserModel
 
 class Authentication:
     password_context = CryptContext(schemes=["bcrypt"])
-    # ACCESS_TOKEN_EXPIRY = 2700  # 45mins
-    # REFRESH_TOKEN_EXPIRY = 5184000  # 60days
+    ACCESS_TOKEN_EXPIRY = 2700  # 45mins
+    REFRESH_TOKEN_EXPIRY = 5184000  # 60days
 
-    ACCESS_TOKEN_EXPIRY = 60  # 1 minutes
-    REFRESH_TOKEN_EXPIRY = 150  # 2.5 minutes
     PWD_RESET_TOKEN_EXPIRY = 3600
     serializer: URLSafeTimedSerializer = URLSafeTimedSerializer(secret_key=Config.JWT_SECRET, salt=Config.EMAIL_SALT)
 

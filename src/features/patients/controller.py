@@ -4,11 +4,18 @@ from uuid import UUID
 
 from fastapi import status
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import selectinload
 from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.patients import Patient
-from src.features.patients.schemas import CreatePatientModel, PatientResponseModel, PatientType, UpdatePatientModel
+from src.features.patients.schemas import (
+    CreatePatientModel,
+    PatientResponseModel,
+    PatientType,
+    SinglePatientResponseModel,
+    UpdatePatientModel,
+)
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import get_current_and_total_pages
 from src.utils.exceptions import InvalidToken, NotFound, ResourceExists
@@ -53,7 +60,7 @@ class PatientController:
         if not user_uid:
             raise InvalidToken()
 
-        query = select(Patient)
+        query = select(Patient).options(selectinload(Patient.user))
 
         if patient_type:
             query = query.where(Patient.patient_type == patient_type)
@@ -73,7 +80,7 @@ class PatientController:
         query = query.order_by(Patient.created_at.desc()).offset(offset).limit(limit)
         results = await session.exec(query)
         patients = results.all()
-        patients_response = [PatientResponseModel.model_validate(patient) for patient in patients]
+        patients_response = [SinglePatientResponseModel.model_validate(patient) for patient in patients]
         current_page, total_pages = get_current_and_total_pages(
             limit=limit,
             total=total,
@@ -90,7 +97,7 @@ class PatientController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[PaginatedResponseModel[PatientResponseModel]](
+            content=ServerRespModel[PaginatedResponseModel[SinglePatientResponseModel]](
                 data=paginated_patients, message="Patients retrieved successfully"
             ).model_dump(),
         )

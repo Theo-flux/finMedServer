@@ -128,7 +128,7 @@ class RoleBasedTokenBearer(AccessTokenBearer):
 
             if role is None:
                 raise NotFound("Role not found.")
-            print(role)
+
             if role.name not in active_required_roles:
                 raise InsufficientPermissions()
 

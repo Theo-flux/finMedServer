@@ -9,16 +9,16 @@ from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.invoices import Invoice
+from src.db.models.patients import Patient
 from src.db.models.payments import Payment
 from src.features.invoices.schemas import (
     CreateInvoiceModel,
-    InvoiceResponseModel,
     InvoiceStatus,
     SingleInvoiceResponseModel,
     UpdateInvoiceModel,
 )
 from src.features.patients.controller import PatientController
-from src.features.payments.schemas import PaymentMethod, PaymentResponseModel
+from src.features.payments.schemas import PaymentMethod, SinglePaymentResponseModel
 from src.features.roles.controller import RoleController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
@@ -87,7 +87,12 @@ class InvoiceController:
         if not user_uid or not role_uid:
             raise InvalidToken()
 
-        query = select(Invoice)
+        query = select(Invoice).options(
+            selectinload(Invoice.user),
+            selectinload(Invoice.service),
+            selectinload(Invoice.department),
+            selectinload(Invoice.patient).selectinload(Patient.user),
+        )
 
         if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
             query = query.where(Invoice.user_uid == user_uid)
@@ -105,16 +110,17 @@ class InvoiceController:
         query = query.order_by(Invoice.created_at.desc()).offset(offset).limit(limit)
 
         results = await session.exec(query)
-        budgets = results.all()
-        budgets_response = [InvoiceResponseModel.model_validate(budget) for budget in budgets]
+        invoices = results.all()
+        invoices_response = [SingleInvoiceResponseModel.model_validate(invoice) for invoice in invoices]
+
         current_page, total_pages = get_current_and_total_pages(
             limit=limit,
             total=total,
             offset=offset,
         )
-        paginated_budget = PaginatedResponseModel.model_validate(
+        paginated_invoice = PaginatedResponseModel.model_validate(
             {
-                "items": budgets_response,
+                "items": invoices_response,
                 "pagination": PaginationModel(
                     total=total, current_page=current_page, limit=limit, total_pages=total_pages
                 ),
@@ -123,8 +129,8 @@ class InvoiceController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[PaginatedResponseModel[InvoiceResponseModel]](
-                data=paginated_budget, message="Invoice retrieved successfully"
+            content=ServerRespModel[PaginatedResponseModel[SingleInvoiceResponseModel]](
+                data=paginated_invoice, message="Invoice retrieved successfully"
             ).model_dump(),
         )
 
@@ -171,25 +177,36 @@ class InvoiceController:
         payments = existing_payments.all()
 
         valid_attrs = data.model_dump(exclude_none=True)
-        if valid_attrs:
-            financial_fields = {"gross_amount", "tax_percent", "discount_percent"}
-            if payments and any(field in valid_attrs for field in financial_fields):
-                raise BadRequest("Cannot update financial details of an invoice with existing payments")
+        if not valid_attrs:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="No changes to update").model_dump(),
+            )
 
-            if valid_attrs.get("patient_uid"):
-                patient = await patient_controller.get_patient_by_uid(
-                    patient_uid=valid_attrs.get("patient_uid"), session=session
-                )
-                if not patient:
-                    raise NotFound("Patient doesn't exist!")
+        financial_fields = {"gross_amount", "tax_percent", "discount_percent"}
+        valid_attrs["updated_at"] = datetime.now()
 
-            valid_attrs["updated_at"] = datetime.now()
+        if payments and any(field in valid_attrs for field in financial_fields):
+            raise BadRequest("Cannot update financial details of an invoice with existing payments")
 
-            for field, value in valid_attrs.items():
-                setattr(invoice_to_update, field, value)
+        if valid_attrs.get("patient_uid"):
+            patient = await patient_controller.get_patient_by_uid(
+                patient_uid=valid_attrs.get("patient_uid"), session=session
+            )
+            if not patient:
+                raise NotFound("Patient doesn't exist!")
 
-            await session.commit()
-            await session.refresh(invoice_to_update)
+        if any(field in valid_attrs for field in financial_fields):
+            new_gross_amount = valid_attrs.get("gross_amount")
+
+            if new_gross_amount and new_gross_amount < invoice_to_update.total_payments:
+                raise BadRequest("New budget amount cannot be lower than existing expenses!")
+
+        for field, value in valid_attrs.items():
+            setattr(invoice_to_update, field, value)
+
+        await session.commit()
+        await session.refresh(invoice_to_update)
 
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
@@ -211,7 +228,11 @@ class InvoiceController:
         if not user_uid:
             raise InvalidToken()
 
-        query = select(Payment).where(Payment.invoice_uid == invoice_uid)
+        query = (
+            select(Payment)
+            .options(selectinload(Payment.invoice), selectinload(Payment.user))
+            .where(Payment.invoice_uid == invoice_uid)
+        )
 
         if q:
             query = query.where(Payment.note.ilike(f"%{q}"))
@@ -231,7 +252,7 @@ class InvoiceController:
         results = await session.exec(query)
 
         invoice_payments = results.all()
-        invoice_payments_response = [PaymentResponseModel.model_validate(invoice) for invoice in invoice_payments]
+        invoice_payments_response = [SinglePaymentResponseModel.model_validate(invoice) for invoice in invoice_payments]
         current_page, total_pages = get_current_and_total_pages(
             limit=limit,
             total=total,
@@ -248,7 +269,7 @@ class InvoiceController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[PaginatedResponseModel[PaymentResponseModel]](
+            content=ServerRespModel[PaginatedResponseModel[SinglePaymentResponseModel]](
                 data=paginated_invoice_payments, message="Invoice Payments retrieved successfully"
             ).model_dump(),
         )

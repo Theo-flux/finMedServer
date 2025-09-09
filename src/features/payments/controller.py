@@ -5,16 +5,14 @@ from uuid import UUID
 from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
-from sqlmodel import func, select, update
+from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.models.invoices import Invoice
 from src.db.models.payments import Payment
 from src.features.invoices.controller import InvoiceController
 from src.features.payments.schemas import (
     CreatePaymentModel,
     PaymentMethod,
-    PaymentResponseModel,
     SinglePaymentResponseModel,
     UpdatePaymentModel,
 )
@@ -35,28 +33,28 @@ class PaymentController:
 
         await session.exec(statement)
 
-    async def get_payment_by_uid(self, payment_invoice: UUID, session: AsyncSession):
+    async def get_payment_by_uid(self, payment_uid: UUID, session: AsyncSession):
         statement = (
             select(Payment)
             .options(selectinload(Payment.user), selectinload(Payment.invoice))
-            .where(Payment.uid == payment_invoice)
+            .where(Payment.uid == payment_uid)
         )
         result = await session.exec(statement=statement)
 
         return result.first()
 
     async def single_payment(self, payment_uid: UUID, session: AsyncSession):
-        invoice = await self.get_payment_by_uid(payment_uid=payment_uid, session=session)
+        payment = await self.get_payment_by_uid(payment_uid=payment_uid, session=session)
 
-        if invoice is None:
+        if payment is None:
             raise NotFound("Payment not found")
 
-        invoice_response = SinglePaymentResponseModel.model_validate(invoice)
+        payment_response = SinglePaymentResponseModel.model_validate(payment)
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content=ServerRespModel[SinglePaymentResponseModel](
-                data=invoice_response, message="Payment retrieved!"
+                data=payment_response, message="Payment retrieved!"
             ).model_dump(),
         )
 
@@ -77,10 +75,10 @@ class PaymentController:
         if not user_uid or not role_uid:
             raise InvalidToken()
 
-        query = select(Payment)
+        query = select(Payment).options(selectinload(Payment.user), selectinload(Payment.invoice))
 
         if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
-            query = query.where(Payment.user_uid == user_uid)
+            query = query.where(Payment.user_uid == user_uid).options(selectinload(Payment.user))
         if q:
             search_term = f"%{q}"
             query = query.where(Payment.note.ilike(search_term) | Payment.serial_no.ilike(search_term))
@@ -103,7 +101,7 @@ class PaymentController:
         results = await session.exec(query)
 
         invoice_payments = results.all()
-        invoice_payments_response = [PaymentResponseModel.model_validate(invoice) for invoice in invoice_payments]
+        invoice_payments_response = [SinglePaymentResponseModel.model_validate(invoice) for invoice in invoice_payments]
         current_page, total_pages = get_current_and_total_pages(
             limit=limit,
             total=total,
@@ -120,38 +118,28 @@ class PaymentController:
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=ServerRespModel[PaginatedResponseModel[PaymentResponseModel]](
+            content=ServerRespModel[PaginatedResponseModel[SinglePaymentResponseModel]](
                 data=paginated_invoice_payments, message="Payments retrieved successfully"
             ).model_dump(),
         )
 
-    async def create_payment(
-        self, invoice_uid: UUID, token_payload: dict, data: CreatePaymentModel, session: AsyncSession
-    ):
+    async def create_payment(self, token_payload: dict, data: CreatePaymentModel, session: AsyncSession):
         payment = data.model_dump()
+
+        invoice = await invoice_controller.get_invoice_by_uid(invoice_uid=data.invoice_uid, session=session)
+
+        if not invoice:
+            raise NotFound("Invoice not found")
+
         payment["user_uid"] = token_payload["user"]["uid"]
 
         try:
-            invoice_to_update = await invoice_controller.get_invoice_with_payments(
-                invoice_uid=invoice_uid, session=session
-            )
-            if not invoice_to_update:
-                raise NotFound("Invoice not found")
-
-            payment["invoice_uid"] = invoice_uid
             new_payment = Payment(**payment)
-            session.add(new_payment)
 
+            session.add(new_payment)
             await session.flush()
             await self.generate_payment_serial_no(new_payment.uid, session)
-            await session.refresh(invoice_to_update)
-
-            invoice_to_update.status = invoice_to_update.payment_status
-            session.add(invoice_to_update)
-
             await session.commit()
-            await session.refresh(invoice_to_update)
-            await session.refresh(invoice_to_update)
 
             return JSONResponse(
                 status_code=status.HTTP_201_CREATED,
@@ -201,30 +189,26 @@ class PaymentController:
         session: AsyncSession,
     ):
         user_uid = token_payload["user"]["uid"]
+        role_uid = token_payload["user"]["role_uid"]
         if not user_uid:
             raise InvalidToken()
 
-        payment_result = await session.exec(
-            select(Payment).where(Payment.user_uid == user_uid, Payment.uid == payment_uid)
-        )
+        payment_result = await session.exec(select(Payment).where(Payment.uid == payment_uid))
         payment_to_delete = payment_result.first()
 
         if not payment_to_delete:
             raise NotFound("Payment not found!")
 
-        invoice_to_update = await session.get(Invoice, payment_to_delete.invoice_uid)
-        if not invoice_to_update:
-            raise NotFound("Invoice not found!")
+        if payment_to_delete.user_uid == user_uid or await role_controller.is_role_admin(
+            role_uid=role_uid, session=session
+        ):
+            statement = delete(Payment).where(Payment.user_uid == user_uid, Payment.uid == payment_uid)
+            await session.exec(statement)
+            await session.commit()
 
-        await session.delete(payment_to_delete)
-        await session.flush()
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Payment deleted successfully!").model_dump(),
+            )
 
-        session.add(invoice_to_update)
-
-        await session.commit()
-        await session.refresh(invoice_to_update)
-
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=ServerRespModel[bool](data=True, message="Payment deleted successfully!").model_dump(),
-        )
+        raise InsufficientPermissions()

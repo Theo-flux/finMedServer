@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.config import Config
@@ -11,29 +11,29 @@ from src.features.payments.controller import PaymentController
 from src.features.payments.schemas import (
     CreatePaymentModel,
     PaymentMethod,
-    PaymentResponseModel,
     SinglePaymentResponseModel,
     UpdatePaymentModel,
 )
-from src.misc.schemas import ServerRespModel
+from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 payment_router = APIRouter()
 payment_controller = PaymentController()
 
 
-@payment_router.post("/{invoice_uid}", response_model=ServerRespModel[bool])
+@payment_router.post("", response_model=ServerRespModel[bool])
 async def create_payment(
-    invoice_uid: UUID,
     data: CreatePaymentModel = Body(...),
     token_payload: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    return await payment_controller.create_payment(
-        invoice_uid=invoice_uid, token_payload=token_payload, data=data, session=session
-    )
+    return await payment_controller.create_payment(token_payload=token_payload, data=data, session=session)
 
 
-@payment_router.get("", response_model=ServerRespModel[PaymentResponseModel])
+@payment_router.get(
+    "",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[PaginatedResponseModel[SinglePaymentResponseModel]],
+)
 async def get_payments(
     payment_method: Optional[PaymentMethod] = Query(default=None),
     serial_no: Optional[str] = Query(default=None),

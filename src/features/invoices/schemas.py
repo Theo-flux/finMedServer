@@ -20,6 +20,10 @@ class InvoiceStatus(StrEnum):
 
 
 class InvoiceType(StrEnum):
+    SERVICE = "SERVICE"
+    PRODUCT = "PRODUCT"
+    SUBSCRIPTION = "SUBSCRIPTION"
+    MAINTENANCE = "MAINTENANCE"
     PATIENT = "PATIENT"
     INSURANCE = "INSURANCE"
     GOVERMENT_GRANT = "GOVERMENT_GRANT"
@@ -33,9 +37,9 @@ class CreateInvoiceModel(BaseModel):
     tax_percent: Optional[Decimal] = Field(default=Decimal("0.0"))
     discount_percent: Optional[Decimal] = Field(default=Decimal("0.0"))
     invoice_type: InvoiceType
-    department_uid: Optional[UUID] = None
-    service_uid: Optional[UUID] = None
-    patient_uid: Optional[UUID] = None
+    department_uid: Optional[UUID] = Field(default=None)
+    service_uid: Optional[UUID] = Field(default=None)
+    patient_uid: Optional[UUID] = Field(default=None)
 
 
 class UpdateInvoiceModel(BaseModel):

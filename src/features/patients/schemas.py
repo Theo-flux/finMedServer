@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
-from src.features.config import DBModel, Gender
+from src.features.config import AbridgedUserResponseModel, DBModel, Gender
 
 
 class PatientType(StrEnum):
@@ -56,3 +56,7 @@ class PatientResponseModel(DBModel):
     @field_serializer("user_uid")
     def serialize_puuid(self, value: UUID, _info):
         return str(value)
+
+
+class SinglePatientResponseModel(PatientResponseModel):
+    user: AbridgedUserResponseModel

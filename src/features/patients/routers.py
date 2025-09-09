@@ -8,7 +8,13 @@ from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
 from src.features.patients.controller import PatientController
-from src.features.patients.schemas import CreatePatientModel, PatientResponseModel, PatientType, UpdatePatientModel
+from src.features.patients.schemas import (
+    CreatePatientModel,
+    PatientResponseModel,
+    PatientType,
+    SinglePatientResponseModel,
+    UpdatePatientModel,
+)
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 patients_router = APIRouter()
@@ -24,7 +30,7 @@ async def create_patient(
     return await patient_controller.create_patient(token_payload=token_payload, data=data, session=session)
 
 
-@patients_router.get("", response_model=ServerRespModel[PaginatedResponseModel[PatientResponseModel]])
+@patients_router.get("", response_model=ServerRespModel[PaginatedResponseModel[SinglePatientResponseModel]])
 async def get_patient(
     q: Optional[str] = Query(default=None),
     patient_type: Optional[PatientType] = Query(default=None),

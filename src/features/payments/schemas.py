@@ -11,18 +11,19 @@ from src.features.invoices.schemas import InvoiceResponseModel
 
 
 class PaymentMethod(StrEnum):
-    CASH = "CASH"
     CARD = "CARD"
     BANK_TRANSFER = "BANK_TRANSFER"
-    INSURANCE = "INSURANCE"
-    OTHERS = "OTHERS"
+    CASH = "CASH"
+    CHEQUE = "CHEQUE"
+    MOBILE_MONEY = "MOBILE_MONEY"
 
 
 class CreatePaymentModel(BaseModel):
-    amount_received: int
+    amount_received: Decimal = Field(gt=0)
     note: str
     payment_method: PaymentMethod
     reference_number: Optional[str] = Field(default="")
+    invoice_uid: UUID
 
 
 class UpdatePaymentModel(BaseModel):

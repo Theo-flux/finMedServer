@@ -12,12 +12,14 @@ from src.db.models.expenses import Expenses
 from src.features.budgets.controller import BudgetController
 from src.features.expenses.schemas import CreateExpensesModel, EditExpenseModel, SingleExpenseResponseModel
 from src.features.expenses_category.controller import ExpCategoryController
+from src.features.roles.controller import RoleController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
 from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
 
 budget_controller = BudgetController()
 category_controller = ExpCategoryController()
+role_controller = RoleController()
 
 
 class ExpensesController:
@@ -182,19 +184,26 @@ class ExpensesController:
         session: AsyncSession,
     ):
         user_uid = token_payload["user"]["uid"]
+        role_uid = token_payload["user"]["role_uid"]
         if not user_uid:
             raise InvalidToken()
 
-        exp_exists = await session.exec(select(Expenses).where(Expenses.user_uid == user_uid, Expenses.uid == exp_uid))
+        exp_result = await session.exec(select(Expenses).where(Expenses.user_uid == user_uid, Expenses.uid == exp_uid))
+        exp_to_delete = exp_result.first()
 
-        if not exp_exists.first():
+        if not exp_result.first():
             raise NotFound("Expense not found!")
 
-        statement = delete(Expenses).where(Expenses.user_uid == user_uid, Expenses.uid == exp_uid)
-        await session.exec(statement)
-        await session.commit()
+        if exp_to_delete.user_uid == user_uid or await role_controller.is_role_admin(
+            role_uid=role_uid, session=session
+        ):
+            statement = delete(Expenses).where(Expenses.user_uid == user_uid, Expenses.uid == exp_uid)
+            await session.exec(statement)
+            await session.commit()
 
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=ServerRespModel[bool](data=True, message="Expense deleted successfully!").model_dump(),
-        )
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Expense deleted successfully!").model_dump(),
+            )
+
+        raise InsufficientPermissions()
