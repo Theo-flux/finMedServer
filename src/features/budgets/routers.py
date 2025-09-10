@@ -9,6 +9,7 @@ from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer, AllAdminsTokenBearer
 from src.features.budgets.controller import BudgetController
 from src.features.budgets.schemas import (
+    BudgetAssignModel,
     BudgetAvailability,
     BudgetStatus,
     CreateBudgetModel,
@@ -38,8 +39,8 @@ async def create_budget(
 )
 async def get_user_budgets(
     q: Optional[str] = Query(default=None),
-    budget_status: Optional[BudgetStatus] = Query(default=None),
-    budget_availability: Optional[BudgetAvailability] = Query(default=None),
+    budget_status: Optional[str] = Query(default=None),
+    budget_availability: Optional[str] = Query(default=None),
     limit: Optional[int] = Query(
         default=Config.DEFAULT_PAGE_LIMIT, ge=Config.DEFAULT_PAGE_MIN_LIMIT, le=Config.DEFAULT_PAGE_MAX_LIMIT
     ),
@@ -171,12 +172,48 @@ async def update_budget_availability(
 )
 async def update_budget_status(
     budget_uid: UUID,
-    budget_status: BudgetStatus = Body(..., embed=True),
+    budget_status: BudgetStatus = Body(...),
     _: dict = Depends(AllAdminsTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
     return await budget_controller.update_status(
         budget_uid=budget_uid,
         budget_status=budget_status,
+        session=session,
+    )
+
+
+@budget_router.patch(
+    "/{budget_uid}/assign",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[bool],
+)
+async def assign_budget(
+    budget_uid: UUID,
+    data: BudgetAssignModel = Body(...),
+    token_payload: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.assign_budget(
+        budget_uid=budget_uid,
+        data=data,
+        token_payload=token_payload,
+        session=session,
+    )
+
+
+@budget_router.patch(
+    "/{budget_uid}/unassign",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[bool],
+)
+async def unassign_budget(
+    budget_uid: UUID,
+    token_payload: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    return await budget_controller.unassign_budget(
+        budget_uid=budget_uid,
+        token_payload=token_payload,
         session=session,
     )

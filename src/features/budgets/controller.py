@@ -10,7 +10,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.budgets import Budget
 from src.db.models.expenses import Expenses
-from src.features.budgets.schemas import BudgetStatus, CreateBudgetModel, SingleBudgetResponseModel, UpdateBudgetModel
+from src.features.budgets.schemas import (
+    BudgetAssignModel,
+    BudgetStatus,
+    CreateBudgetModel,
+    SingleBudgetResponseModel,
+    UpdateBudgetModel,
+)
 from src.features.config import SelectOfScalar
 from src.features.expenses.schemas import SingleExpenseResponseModel
 from src.features.roles.controller import RoleController
@@ -155,10 +161,12 @@ class BudgetController:
             )
 
         if budget_status:
-            query = query.where(Budget.status == budget_status)
+            status_list = budget_status.split(",")
+            query = query.where(Budget.status.in_(status_list))
 
         if budget_availability:
-            query = query.where(Budget.availability == budget_availability)
+            availability_list = budget_availability.split(",")
+            query = query.where(Budget.availability.in_(availability_list))
 
         count_query = select(func.count()).select_from(query.subquery())
         total = await session.scalar(count_query)
@@ -401,3 +409,71 @@ class BudgetController:
         except Exception:
             await session.rollback()
             raise BadRequest("Failed to update budget status")
+
+    async def assign_budget(
+        self, token_payload: dict, budget_uid: UUID, data: BudgetAssignModel, session: AsyncSession
+    ):
+        data = data.model_dump()
+        user_uid = token_payload["user"]["uid"]
+        budget = await self.get_budget_by_uid(budget_uid, session)
+
+        if not budget:
+            raise NotFound("Budget not found!")
+
+        if budget.user_uid != UUID(user_uid):
+            raise InsufficientPermissions("You don't have permission to assign this budget")
+
+        if budget.user_uid == data["assignee_uid"]:
+            raise BadRequest("You cannot assign budget to yourself")
+
+        if budget.assignee_uid:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget already assigned!").model_dump(),
+            )
+
+        try:
+            statement = update(Budget).where(Budget.uid == budget_uid).values(assignee_uid=data.get("assignee_uid"))
+            await session.exec(statement=statement)
+            await session.commit()
+
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget assigned successfully!").model_dump(),
+            )
+        except Exception:
+            await session.rollback()
+            raise BadRequest("Failed to assign budget")
+
+    async def unassign_budget(self, token_payload: dict, budget_uid: UUID, session: AsyncSession):
+        user_uid = token_payload["user"]["uid"]
+        budget = await self.get_budget_with_expenses(budget_uid, session)
+
+        if budget.user_uid != UUID(str(user_uid)):
+            raise InsufficientPermissions("You don't have permission to unassign this budget")
+
+        if not budget:
+            raise NotFound("Budget not found!")
+
+        if not budget.assignee_uid:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget already unassigned!").model_dump(),
+            )
+
+        assignee_expenses = [expense for expense in budget.expenses if expense.user_uid == budget.assignee_uid]
+        if assignee_expenses:
+            raise BadRequest("Cannot unassign budget. Assignee has existing expenses.")
+
+        try:
+            statement = update(Budget).where(Budget.uid == budget_uid).values(assignee_uid=None)
+            await session.exec(statement=statement)
+            await session.commit()
+
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](data=True, message="Budget unassigned successfully!").model_dump(),
+            )
+        except Exception:
+            await session.rollback()
+            raise BadRequest("Failed to unassign budget")

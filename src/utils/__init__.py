@@ -18,7 +18,19 @@ def build_serial_no(name: str, id: int):
 
 
 def get_current_and_total_pages(limit: int, total: Optional[int] = None, offset: Optional[int] = None):
+    if limit <= 0:
+        raise ValueError("Limit must be greater than 0")
+
+    if offset is None:
+        offset = 0
+
+    if total is None:
+        total = 0
+
+    if offset < 0:
+        offset = 0
+
     current_page = (offset // limit) + 1
-    total_pages = (total + limit - 1) // limit
+    total_pages = max(1, (total + limit - 1) // limit) if total > 0 else 1
 
     return current_page, total_pages

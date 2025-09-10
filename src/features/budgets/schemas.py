@@ -16,6 +16,10 @@ class BudgetStatus(StrEnum):
     REJECTED = "REJECTED"
 
 
+class BudgetAssignModel(BaseModel):
+    assignee_uid: UUID
+
+
 class BudgetAvailability(StrEnum):
     AVAILABLE = "AVAILABLE"
     FROZEN = "FROZEN"

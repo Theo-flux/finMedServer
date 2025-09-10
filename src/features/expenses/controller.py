@@ -5,9 +5,10 @@ from uuid import UUID
 from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
-from sqlmodel import delete, func, select, update
+from sqlmodel import and_, delete, func, or_, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.models.budgets import Budget
 from src.db.models.expenses import Expenses
 from src.features.budgets.controller import BudgetController
 from src.features.expenses.schemas import CreateExpensesModel, EditExpenseModel, SingleExpenseResponseModel
@@ -15,7 +16,7 @@ from src.features.expenses_category.controller import ExpCategoryController
 from src.features.roles.controller import RoleController
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
-from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
+from src.utils.exceptions import BadRequest, InsufficientPermissions, InvalidToken, NotFound
 
 budget_controller = BudgetController()
 category_controller = ExpCategoryController()
@@ -62,11 +63,15 @@ class ExpensesController:
 
     async def create_exp(self, token_payload: dict, data: CreateExpensesModel, session: AsyncSession):
         exp = data.model_dump()
+        user_uid = token_payload["user"]["uid"]
 
         budget = await budget_controller.get_budget_by_uid(budget_uid=data.budget_uid, session=session)
 
         if budget is None:
             raise NotFound("Budget not found!")
+
+        if budget.availability != "AVAILABLE":
+            raise BadRequest("Budget is not available for expenses!")
 
         exp_cat = await category_controller.get_category_by_uid(
             category_uid=data.expenses_category_uid, session=session
@@ -75,7 +80,7 @@ class ExpensesController:
         if exp_cat is None:
             raise NotFound("Category not found!")
 
-        exp["user_uid"] = token_payload["user"]["uid"]
+        exp["user_uid"] = user_uid
 
         try:
             new_exp = Expenses(**exp)
@@ -126,16 +131,33 @@ class ExpensesController:
         q: Optional[str] = None,
     ):
         user_uid = token_payload["user"]["uid"]
+        role_uid = token_payload["user"]["role_uid"]
+
         if not user_uid:
             raise InvalidToken()
 
-        query = (
-            select(Expenses)
-            .options(
-                selectinload(Expenses.budget), selectinload(Expenses.expenses_category), selectinload(Expenses.user)
+        if await role_controller.is_role_admin(role_uid=role_uid, session=session):
+            query = select(Expenses).options(
+                selectinload(Expenses.budget),
+                selectinload(Expenses.expenses_category),
+                selectinload(Expenses.user),
             )
-            .where(Expenses.user_uid == user_uid)
-        )
+        else:
+            query = (
+                select(Expenses)
+                .join(
+                    Budget,
+                    and_(
+                        Expenses.budget_uid == Budget.uid,
+                        or_(Budget.user_uid == user_uid, Budget.assignee_uid == user_uid),
+                    ),
+                )
+                .options(
+                    selectinload(Expenses.budget),
+                    selectinload(Expenses.expenses_category),
+                    selectinload(Expenses.user),
+                )
+            )
 
         if budget_uid:
             query = query.where(Expenses.budget_uid == budget_uid)
@@ -185,25 +207,31 @@ class ExpensesController:
     ):
         user_uid = token_payload["user"]["uid"]
         role_uid = token_payload["user"]["role_uid"]
-        if not user_uid:
+
+        if not user_uid or not role_uid:
             raise InvalidToken()
 
-        exp_result = await session.exec(select(Expenses).where(Expenses.user_uid == user_uid, Expenses.uid == exp_uid))
+        statement = select(Expenses).options(selectinload(Expenses.budget)).where(Expenses.uid == exp_uid)
+
+        if not await role_controller.is_role_admin(role_uid=role_uid, session=session):
+            statement = statement.where(Expenses.user_uid == user_uid)
+
+        exp_result = await session.exec(statement=statement)
         exp_to_delete = exp_result.first()
 
-        if not exp_result.first():
+        if not exp_to_delete:
             raise NotFound("Expense not found!")
 
-        if exp_to_delete.user_uid == user_uid or await role_controller.is_role_admin(
-            role_uid=role_uid, session=session
-        ):
-            statement = delete(Expenses).where(Expenses.user_uid == user_uid, Expenses.uid == exp_uid)
-            await session.exec(statement)
-            await session.commit()
+        if exp_to_delete.budget and exp_to_delete.budget.availability != "AVAILABLE":
+            raise BadRequest("Cannot delete expense. Associated budget is currently frozen!")
 
-            return JSONResponse(
-                status_code=status.HTTP_200_OK,
-                content=ServerRespModel[bool](data=True, message="Expense deleted successfully!").model_dump(),
-            )
+        statement = delete(Expenses).where(Expenses.uid == exp_uid)
+        await session.exec(statement)
+        await session.commit()
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[bool](data=True, message="Expense deleted successfully!").model_dump(),
+        )
 
         raise InsufficientPermissions()

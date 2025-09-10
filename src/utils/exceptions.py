@@ -140,7 +140,7 @@ def register_exceptions(app: FastAPI):
     app.add_exception_handler(TokenExpired, create_exception_handler(status.HTTP_401_UNAUTHORIZED))
     app.add_exception_handler(ExpiredLink, create_exception_handler(status.HTTP_401_UNAUTHORIZED))
     app.add_exception_handler(InvalidLink, create_exception_handler(status.HTTP_401_UNAUTHORIZED))
-    app.add_exception_handler(InsufficientPermissions, create_exception_handler(status.HTTP_403_FORBIDDEN))
+    app.add_exception_handler(InsufficientPermissions, create_exception_handler(status.HTTP_405_METHOD_NOT_ALLOWED))
     app.add_exception_handler(BadRequest, create_exception_handler(status.HTTP_409_CONFLICT))
 
     @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)

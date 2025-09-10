@@ -54,7 +54,7 @@ class TokenBearer(HTTPBearer):
         cred = await super().__call__(request)
         token = cred.credentials
 
-        self.is_token_valid(token)
+        await self.is_token_valid(token)
 
         token_payload = Authentication.decode_token(token)
         await self.verify_token_data(token_payload)
