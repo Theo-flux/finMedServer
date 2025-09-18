@@ -43,10 +43,11 @@ class User(SQLModel, table=True):
     last_name: str = Field(...)
     user_name: Optional[str] = Field(default="")
     email: EmailStr = Field(...)
+    is_email_verified: bool = Field(default=False)
     phone_number: Optional[str] = Field(default="")
     password: Optional[str] = Field(default="")
     avatar: Optional[str] = Field(default="")
-    status: Optional[str] = Field(default=UserStatus.IN_ACTIVE.value)
+    status: Optional[str] = Field(default=UserStatus.ACTIVE.value)
     last_login: Optional[datetime] = Field(
         sa_column=Column(
             DateTime(timezone=True),

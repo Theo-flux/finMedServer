@@ -68,7 +68,7 @@ class UserController:
 
         return user
 
-    async def get__user_by_mail_or_staff_no(self, email_or_staff_no: str, session: AsyncSession):
+    async def get_user_by_mail_or_staff_no(self, email_or_staff_no: str, session: AsyncSession):
         user = None
         if is_email(email_or_staff_no):
             email_validator(email_or_staff_no)

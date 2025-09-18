@@ -1,17 +1,27 @@
 from typing import Optional
 
-from fastapi import status
+from fastapi import Response, status
 from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
-from src.db.redis import add_jti_to_block_list
+from src.db.redis import add_jti_to_block_list, redis_client
 from src.features.departments.controller import DeptController
 from src.features.roles.controller import RoleController
 from src.features.users.controller import UserController
 from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResponseModel
 from src.misc.schemas import ServerRespModel
-from src.utils.exceptions import InActive, NotFound, UserEmailExists, WrongCredentials
+from src.utils.exceptions import (
+    InActive,
+    InvalidToken,
+    NotFound,
+    RefreshTokenExpired,
+    RefreshTokenRequired,
+    TokenExpired,
+    UserEmailExists,
+    WrongCredentials,
+)
+from src.utils.logger import setup_logger
 
 from .authentication import Authentication
 from .schemas import ChangePwdModel, TokenModel, TokenUserModel, UserType
@@ -19,6 +29,8 @@ from .schemas import ChangePwdModel, TokenModel, TokenUserModel, UserType
 user_controller = UserController()
 role_controller = RoleController()
 dept_controller = DeptController()
+
+logger = setup_logger(__name__)
 
 
 class AuthController:
@@ -49,23 +61,65 @@ class AuthController:
             ).model_dump(),
         )
 
-    async def new_access_token(self, token_payload: dict):
-        new_access_token = Authentication.create_token(TokenUserModel.model_validate(token_payload["user"]))
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=ServerRespModel(
-                data={"access_token": new_access_token},
-                message="new access token generated.",
-            ).model_dump(),
-        )
+    async def new_access_token(self, refresh_token: str):
+        if not refresh_token:
+            raise RefreshTokenRequired("Refresh token not found.")
+
+        try:
+            payload = Authentication.decode_token(refresh_token, refresh=True)
+
+            if not payload.get("refresh", False):
+                raise InvalidToken("Invalid token type.")
+
+            jti = payload.get("jti")
+            redis_key = f"refresh_token:{jti}"
+            stored_token = redis_client.client.get(redis_key)
+
+            if not stored_token or stored_token != refresh_token:
+                raise RefreshTokenExpired("Refresh token invalid or expired.")
+
+            redis_client.client.expire(redis_key, Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS)
+
+            user_data = payload["user"]
+
+            user = await user_controller.get_user_by_uid(user_data["uid"], session=None)
+
+            if not user:
+                raise RefreshTokenExpired("Refresh token invalid or expired.")
+
+            new_access_token = Authentication.create_token(user_data=TokenUserModel.model_validate(user_data))
+
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel(
+                    data={"access_token": new_access_token},
+                    message="new access token generated.",
+                ).model_dump(),
+            )
+        except (RefreshTokenRequired, RefreshTokenExpired, InvalidToken, TokenExpired):
+            raise
+        except Exception as e:
+            logger.error(f"Error generating new access token: {e}")
+            raise
 
     async def change_pwd(self, data: ChangePwdModel, session: AsyncSession):
-        user = await user_controller.get__user_by_mail_or_staff_no(
+        user = await user_controller.get_user_by_mail_or_staff_no(
             email_or_staff_no=data.email_or_staff_no, session=session
         )
 
         if not user:
             raise NotFound("User doesn't exist.")
+
+        if user.password and not Authentication.verify_password(data.old_password, user.password):
+            raise WrongCredentials("Old password is incorrect.")
+
+        if user.password and Authentication.verify_password(data.new_password, user.password):
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=ServerRespModel[bool](
+                    data=False, message="New password cannot be same as old password."
+                ).model_dump(),
+            )
 
         await user_controller.update_user(
             user=user,
@@ -78,8 +132,8 @@ class AuthController:
             content=ServerRespModel[bool](data=True, message="Password reset successful.").model_dump(),
         )
 
-    async def login_user(self, login_data: LoginUserModel, session: AsyncSession):
-        user = await user_controller.get__user_by_mail_or_staff_no(
+    async def login_user(self, response: Response, login_data: LoginUserModel, session: AsyncSession):
+        user = await user_controller.get_user_by_mail_or_staff_no(
             email_or_staff_no=login_data.email_or_staff_no, session=session
         )
 
@@ -116,7 +170,7 @@ class AuthController:
                 )
 
                 access_token = Authentication.create_token(user_data)
-                refresh_token = Authentication.create_token(user_data=user_data, refresh=True)
+                Authentication.create_token(user_data=user_data, refresh=True, response=response)
 
                 await user_controller.update_last_login(user=user, session=session)
 
@@ -125,7 +179,6 @@ class AuthController:
                     content=ServerRespModel[TokenModel](
                         data={
                             "access_token": access_token,
-                            "refresh_token": refresh_token,
                             "user_type": UserType.OLD_USER.value,
                         },
                         message="user token generated.",
@@ -139,7 +192,6 @@ class AuthController:
                 content=ServerRespModel[TokenModel](
                     data={
                         "access_token": "",
-                        "refresh_token": "",
                         "user_type": UserType.OLD_USER.value if user.password else UserType.NEW_USER.value,
                     },
                     message="user token generated.",
@@ -182,4 +234,19 @@ class AuthController:
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,
             content=ServerRespModel[bool](data=True, message="User created!").model_dump(),
+        )
+
+    async def forgot_password(self, email_staff_no: str, session: AsyncSession):
+        user = await user_controller.get_user_by_mail_or_staff_no(email_or_staff_no=email_staff_no, session=session)
+
+        if not user:
+            raise NotFound("User doesn't exist.")
+
+        # TODO: send email with reset link
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=ServerRespModel[bool](
+                data=True, message="Password reset initiated. Please check your email."
+            ).model_dump(),
         )

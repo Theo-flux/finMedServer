@@ -26,12 +26,12 @@ class ResetPwdModel(BaseModel):
 
 
 class ChangePwdModel(EmailOrStaffNoModel):
+    old_password: str
     new_password: str
 
 
 class TokenModel(BaseModel):
     access_token: str
-    refresh_token: str
     user_type: UserType
 
 

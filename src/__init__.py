@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.db.main import init_db
+from src.db.redis import init_redis
 from src.features.auth.routers import auth_router
 from src.features.budgets.routers import budget_router
 from src.features.departments.routers import dept_router
@@ -15,15 +16,19 @@ from src.features.roles.routers import role_router
 from src.features.services.routers import service_router
 from src.features.users.routers import user_router
 from src.utils.exceptions import register_exceptions
+from src.utils.logger import setup_logger
 from src.utils.middlewares import register_middlewares
+
+logger = setup_logger(__name__)
 
 
 @asynccontextmanager
 async def life_span(app: FastAPI):
-    print("Server started...")
+    logger.info("🚀 Server starting...")
     await init_db()
+    await init_redis()
     yield
-    print("Server stopped...")
+    logger.info("👋 Server stopped...")
 
 
 version = "v1"

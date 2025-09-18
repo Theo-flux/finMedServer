@@ -17,7 +17,6 @@ from src.utils.exceptions import (
     InvalidToken,
     NotFound,
     RefreshTokenExpired,
-    RefreshTokenRequired,
     TokenExpired,
 )
 
@@ -69,12 +68,6 @@ class AccessTokenBearer(TokenBearer):
     async def verify_token_data(self, token_payload):
         if token_payload and token_payload["refresh"]:
             raise AccessTokenRequired()
-
-
-class RefreshTokenBearer(TokenBearer):
-    async def verify_token_data(self, token_payload):
-        if token_payload and not token_payload["refresh"]:
-            raise RefreshTokenRequired()
 
 
 class RoleBasedTokenBearer(AccessTokenBearer):

@@ -1,13 +1,16 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Optional
 from uuid import uuid4
 
 import jwt
+from fastapi import Response
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from jwt import ExpiredSignatureError, PyJWTError
 from passlib.context import CryptContext
 
 from src.config import Config
+from src.db.redis import redis_client
 from src.utils.exceptions import ExpiredLink, InvalidLink, InvalidToken, RefreshTokenExpired, TokenExpired
 
 from .schemas import TokenUserModel
@@ -15,10 +18,10 @@ from .schemas import TokenUserModel
 
 class Authentication:
     password_context = CryptContext(schemes=["bcrypt"])
-    ACCESS_TOKEN_EXPIRY = 2700  # 45mins
-    REFRESH_TOKEN_EXPIRY = 5184000  # 60days
+    ACCESS_TOKEN_EXPIRY_IN_SECONDS = 900  # 15 mins
+    REFRESH_TOKEN_EXPIRY_IN_SECONDS = 604800  # 7 days
 
-    PWD_RESET_TOKEN_EXPIRY = 3600
+    PWD_RESET_TOKEN_EXPIRY_IN_SECONDS = 3600  # 1 hour
     serializer: URLSafeTimedSerializer = URLSafeTimedSerializer(secret_key=Config.JWT_SECRET, salt=Config.EMAIL_SALT)
 
     @staticmethod
@@ -30,10 +33,19 @@ class Authentication:
         return Authentication.password_context.verify(password, hash)
 
     @staticmethod
-    def create_token(user_data: TokenUserModel, expiry: timedelta = None, refresh: bool = False):
+    def create_token(
+        user_data: TokenUserModel,
+        response=Optional[Response],
+        expiry: timedelta = None,
+        refresh: bool = False,
+    ) -> str:
         payload = {}
 
-        payload["user"] = user_data.model_dump(mode="json")
+        if refresh:
+            payload["user"] = {"uuid": user_data.uuid, "id": user_data.id}
+        else:
+            payload["user"] = user_data.model_dump(mode="json")
+
         payload["exp"] = int(
             (
                 datetime.now()
@@ -41,7 +53,11 @@ class Authentication:
                     expiry
                     if expiry is not None
                     else timedelta(
-                        seconds=Authentication.REFRESH_TOKEN_EXPIRY if refresh else Authentication.ACCESS_TOKEN_EXPIRY
+                        seconds=(
+                            Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS
+                            if refresh
+                            else Authentication.ACCESS_TOKEN_EXPIRY_IN_SECONDS
+                        )
                     )
                 )
             ).timestamp()
@@ -49,6 +65,24 @@ class Authentication:
         payload["jti"] = str(uuid4())
         payload["refresh"] = refresh
         token = jwt.encode(payload=payload, key=Config.JWT_SECRET, algorithm=Config.JWT_ALGORITHM)
+
+        if refresh:
+            try:
+                redis_key = f"refresh_token:{payload['jti']}"
+                redis_client.client.set(name=redis_key, value=token, ex=Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS)
+
+                response.set_cookie(
+                    key="refresh_token",
+                    value=token,
+                    httponly=True,
+                    samesite="lax",
+                    secure=False,
+                    max_age=Authentication.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+                    path="/api/v1/auth/new-access-token",
+                )
+            except Exception as e:
+                logging.error(f"Failed to initialize Redis client: {e}")
+                pass
 
         return token
 
@@ -65,10 +99,7 @@ class Authentication:
         except ExpiredSignatureError:
             try:
                 unverified_payload = jwt.decode(
-                    jwt=token,
-                    key=Config.JWT_SECRET,
-                    algorithms=[Config.JWT_ALGORITHM],
-                    options={"verify_signature": False, "verify_exp": False, "verify_aud": False, "verify_iss": False},
+                    jwt=token, key=Config.JWT_SECRET, algorithms=[Config.JWT_ALGORITHM], options={"verify_exp": False}
                 )
                 is_refresh = unverified_payload.get("refresh", False)
                 logging.warning(f"Token expired. Is refresh: {is_refresh}")
@@ -98,7 +129,7 @@ class Authentication:
     @staticmethod
     def decode_url_safe_token(token: str):
         try:
-            return Authentication.serializer.loads(token, max_age=Authentication.PWD_RESET_TOKEN_EXPIRY)
+            return Authentication.serializer.loads(token, max_age=Authentication.PWD_RESET_TOKEN_EXPIRY_IN_SECONDS)
         except SignatureExpired:
             logging.error("Token expired")
             raise ExpiredLink()

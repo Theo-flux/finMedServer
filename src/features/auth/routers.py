@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, status
+from fastapi import APIRouter, Body, Cookie, Depends, Response, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
@@ -6,7 +6,7 @@ from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResp
 from src.misc.schemas import ServerRespModel
 
 from .controller import AuthController
-from .dependencies import AccessTokenBearer, RefreshTokenBearer, RoleBasedTokenBearer
+from .dependencies import AccessTokenBearer, RoleBasedTokenBearer
 from .schemas import ChangePwdModel, TokenModel
 
 auth_router = APIRouter()
@@ -18,8 +18,10 @@ auth_controller = AuthController()
     status_code=status.HTTP_200_OK,
     response_model=ServerRespModel[TokenModel],
 )
-async def login_user(login_data: LoginUserModel = Body(...), session: AsyncSession = Depends(get_session)):
-    return await auth_controller.login_user(login_data, session)
+async def login_user(
+    response: Response, login_data: LoginUserModel = Body(...), session: AsyncSession = Depends(get_session)
+):
+    return await auth_controller.login_user(response=response, login_data=login_data, session=session)
 
 
 @auth_router.post(
@@ -53,12 +55,15 @@ async def revoke_user_token(token_payload: dict = Depends(AccessTokenBearer())):
 
 
 @auth_router.get("/new-access-token", status_code=status.HTTP_200_OK, response_model=ServerRespModel)
-async def get_new_user_access_token(
-    token_payload: dict = Depends(RefreshTokenBearer()),
-):
-    return await auth_controller.new_access_token(token_payload)
+async def get_new_user_access_token(refresh_token: str = Cookie(None, alias="refresh_token")):
+    return await auth_controller.new_access_token(refresh_token=refresh_token)
 
 
 @auth_router.post("/pwd-reset", status_code=status.HTTP_200_OK, response_model=ServerRespModel[bool])
 async def pwd_reset(data: ChangePwdModel = Body(...), session: AsyncSession = Depends(get_session)):
     return await auth_controller.change_pwd(data=data, session=session)
+
+
+@auth_router.post("/forgot-pwd", status_code=status.HTTP_200_OK, response_model=ServerRespModel[bool])
+async def forgot_password(email: str = Body(..., embed=True), session: AsyncSession = Depends(get_session)):
+    return await auth_controller.forgot_password(email=email, session=session)
