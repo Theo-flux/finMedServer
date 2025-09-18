@@ -5,12 +5,11 @@ from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
-from src.features.expenses_category.controller import ExpCategoryController
+from src.features.expenses_category.controller import category_controller
 from src.features.services.schemas import CreateServiceModel, ServiceResponseModel, UpdateServiceModel
 from src.misc.schemas import ServerRespModel
 
 category_router = APIRouter()
-category_controller = ExpCategoryController()
 
 
 @category_router.get("", response_model=ServerRespModel[List[ServiceResponseModel]])

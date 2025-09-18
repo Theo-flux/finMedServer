@@ -112,3 +112,6 @@ class RoleController:
                 data=role_response, message="Role retrieved successfully!"
             ).model_dump(),
         )
+
+
+role_controller = RoleController()

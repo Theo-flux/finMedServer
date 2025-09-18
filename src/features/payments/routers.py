@@ -7,7 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
-from src.features.payments.controller import PaymentController
+from src.features.payments.controller import payment_controller
 from src.features.payments.schemas import (
     CreatePaymentModel,
     PaymentMethod,
@@ -17,7 +17,6 @@ from src.features.payments.schemas import (
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 payment_router = APIRouter()
-payment_controller = PaymentController()
 
 
 @payment_router.post("", response_model=ServerRespModel[bool])

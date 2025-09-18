@@ -9,14 +9,11 @@ from sqlmodel import func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
-from src.features.roles.controller import RoleController
 from src.features.users.schemas import UserResponseModel, UserStatus
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import get_current_and_total_pages
 from src.utils.exceptions import NotFound
 from src.utils.validators import email_validator, is_email
-
-role_controller = RoleController()
 
 
 class UserController:
@@ -175,3 +172,6 @@ class UserController:
                 data=paginated_users_response, message="Users retrieved successfully"
             ).model_dump(),
         )
+
+
+user_controller = UserController()

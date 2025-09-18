@@ -102,3 +102,6 @@ class ServiceController:
                 data=service_response, message="Service retrieved successfully!"
             ).model_dump(),
         )
+
+
+service_controller = ServiceController()

@@ -103,3 +103,6 @@ class DeptController:
                 data=role_response, message="Depts. retrieved successfully!"
             ).model_dump(),
         )
+
+
+dept_controller = DeptController()

@@ -7,12 +7,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
-from src.features.expenses.controller import ExpensesController
+from src.features.expenses.controller import expense_controller
 from src.features.expenses.schemas import CreateExpensesModel, EditExpenseModel, SingleExpenseResponseModel
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 expense_router = APIRouter()
-expense_controller = ExpensesController()
 
 
 @expense_router.post("", response_model=ServerRespModel[bool])

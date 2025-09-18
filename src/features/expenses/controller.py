@@ -10,17 +10,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.budgets import Budget
 from src.db.models.expenses import Expenses
-from src.features.budgets.controller import BudgetController
+from src.features.budgets.controller import budget_controller
 from src.features.expenses.schemas import CreateExpensesModel, EditExpenseModel, SingleExpenseResponseModel
-from src.features.expenses_category.controller import ExpCategoryController
-from src.features.roles.controller import RoleController
+from src.features.expenses_category.controller import category_controller
+from src.features.roles.controller import role_controller
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
 from src.utils.exceptions import BadRequest, InsufficientPermissions, InvalidToken, NotFound
-
-budget_controller = BudgetController()
-category_controller = ExpCategoryController()
-role_controller = RoleController()
 
 
 class ExpensesController:
@@ -235,3 +231,6 @@ class ExpensesController:
         )
 
         raise InsufficientPermissions()
+
+
+expense_controller = ExpensesController()

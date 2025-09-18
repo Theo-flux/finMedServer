@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Body, Cookie, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -47,9 +49,16 @@ async def get_current_user_profile(
     return await auth_controller.get_current_user(token_payload=token_payload, session=session)
 
 
-@auth_router.get("/logout")
-async def revoke_user_token(token_payload: dict = Depends(AccessTokenBearer())):
-    return await auth_controller.revoke_token(token_payload)
+@auth_router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+    response_model=ServerRespModel[bool],
+)
+async def revoke_user_token(
+    refresh_token_jti: Optional[str] = Cookie(None, alias="refresh_token"),
+    token_payload: dict = Depends(AccessTokenBearer()),
+):
+    return await auth_controller.revoke_token(refresh_token_jti=refresh_token_jti, token_payload=token_payload)
 
 
 @auth_router.post(
@@ -58,9 +67,9 @@ async def revoke_user_token(token_payload: dict = Depends(AccessTokenBearer())):
     response_model=ServerRespModel[TokenModel],
 )
 async def get_new_user_access_token(
-    refresh_token: str | None = Cookie(None, alias="refresh_token"), session: AsyncSession = Depends(get_session)
+    token_jti: Optional[str] = Cookie(None, alias="refresh_token"), session: AsyncSession = Depends(get_session)
 ):
-    return await auth_controller.new_access_token(refresh_token=refresh_token, session=session)
+    return await auth_controller.new_access_token(token_jti=token_jti, session=session)
 
 
 @auth_router.post("/pwd-reset", status_code=status.HTTP_200_OK, response_model=ServerRespModel[bool])

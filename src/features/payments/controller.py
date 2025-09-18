@@ -9,20 +9,17 @@ from sqlmodel import delete, func, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.payments import Payment
-from src.features.invoices.controller import InvoiceController
+from src.features.invoices.controller import invoice_controller
 from src.features.payments.schemas import (
     CreatePaymentModel,
     PaymentMethod,
     SinglePaymentResponseModel,
     UpdatePaymentModel,
 )
-from src.features.roles.controller import RoleController
+from src.features.roles.controller import role_controller
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
 from src.utils.exceptions import InsufficientPermissions, InvalidToken, NotFound
-
-invoice_controller = InvoiceController()
-role_controller = RoleController()
 
 
 class PaymentController:
@@ -212,3 +209,6 @@ class PaymentController:
             )
 
         raise InsufficientPermissions()
+
+
+payment_controller = PaymentController()

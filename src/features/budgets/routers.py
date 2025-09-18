@@ -7,7 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer, AllAdminsTokenBearer
-from src.features.budgets.controller import BudgetController
+from src.features.budgets.controller import budget_controller
 from src.features.budgets.schemas import (
     BudgetAssignModel,
     BudgetAvailability,
@@ -20,7 +20,6 @@ from src.features.expenses.schemas import SingleExpenseResponseModel
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 budget_router = APIRouter()
-budget_controller = BudgetController()
 
 
 @budget_router.post("", status_code=status.HTTP_201_CREATED, response_model=ServerRespModel[bool])

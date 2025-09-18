@@ -233,3 +233,6 @@ class PatientController:
             status_code=status.HTTP_200_OK,
             content=ServerRespModel[bool](data=True, message="Patient deleted successfully!").model_dump(),
         )
+
+
+patient_controller = PatientController()

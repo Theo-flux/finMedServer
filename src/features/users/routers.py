@@ -7,12 +7,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import RoleBasedTokenBearer
-from src.features.users.controller import UserController
+from src.features.users.controller import user_controller
 from src.features.users.schemas import UserResponseModel, UserStatus
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 user_router = APIRouter()
-user_controller = UserController()
 
 
 @user_router.get(

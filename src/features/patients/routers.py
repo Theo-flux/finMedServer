@@ -8,7 +8,7 @@ from src.config import Config
 from src.db.main import get_session
 from src.features.auth.dependencies import AccessTokenBearer
 from src.features.invoices.schemas import InvoiceStatus, SingleInvoiceResponseModel
-from src.features.patients.controller import PatientController
+from src.features.patients.controller import patient_controller
 from src.features.patients.schemas import (
     CreatePatientModel,
     PatientResponseModel,
@@ -19,7 +19,6 @@ from src.features.patients.schemas import (
 from src.misc.schemas import PaginatedResponseModel, ServerRespModel
 
 patients_router = APIRouter()
-patient_controller = PatientController()
 
 
 @patients_router.post("", response_model=ServerRespModel[bool])

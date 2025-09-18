@@ -109,3 +109,6 @@ class ExpCategoryController:
                 data=service_response, message="Expenses Category retrieved successfully!"
             ).model_dump(),
         )
+
+
+category_controller = ExpCategoryController()

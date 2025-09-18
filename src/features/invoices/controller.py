@@ -19,13 +19,12 @@ from src.features.invoices.schemas import (
 )
 from src.features.patients.controller import PatientController
 from src.features.payments.schemas import PaymentMethod, SinglePaymentResponseModel
-from src.features.roles.controller import RoleController
+from src.features.roles.controller import role_controller
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
 from src.utils.exceptions import BadRequest, InsufficientPermissions, InvalidToken, NotFound
 
 patient_controller = PatientController()
-role_controller = RoleController()
 
 
 class InvoiceController:
@@ -299,3 +298,6 @@ class InvoiceController:
             status_code=status.HTTP_200_OK,
             content=ServerRespModel[bool](data=True, message="Invoice deleted successfully!").model_dump(),
         )
+
+
+invoice_controller = InvoiceController()

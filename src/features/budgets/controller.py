@@ -19,12 +19,10 @@ from src.features.budgets.schemas import (
 )
 from src.features.config import SelectOfScalar
 from src.features.expenses.schemas import SingleExpenseResponseModel
-from src.features.roles.controller import RoleController
+from src.features.roles.controller import role_controller
 from src.misc.schemas import PaginatedResponseModel, PaginationModel, ServerRespModel
 from src.utils import build_serial_no, get_current_and_total_pages
 from src.utils.exceptions import BadRequest, InsufficientPermissions, InvalidToken, NotFound
-
-role_controller = RoleController()
 
 
 class BudgetController:
@@ -477,3 +475,6 @@ class BudgetController:
         except Exception:
             await session.rollback()
             raise BadRequest("Failed to unassign budget")
+
+
+budget_controller = BudgetController()

@@ -1,8 +1,10 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Optional
 from uuid import uuid4
 
 import jwt
+from fastapi import Response
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from jwt import ExpiredSignatureError, PyJWTError
 from passlib.context import CryptContext
@@ -16,7 +18,7 @@ from .schemas import TokenUserModel
 
 class Authentication:
     password_context = CryptContext(schemes=["bcrypt"])
-    ACCESS_TOKEN_EXPIRY_IN_SECONDS = 10  # 15 mins
+    ACCESS_TOKEN_EXPIRY_IN_SECONDS = 900  # 15 mins
     REFRESH_TOKEN_EXPIRY_IN_SECONDS = 604800  # 7 days
 
     PWD_RESET_TOKEN_EXPIRY_IN_SECONDS = 3600  # 1 hour
@@ -33,6 +35,7 @@ class Authentication:
     @staticmethod
     async def create_token(
         user_data: TokenUserModel,
+        response: Optional[Response] = None,
         expiry: timedelta = None,
         refresh: bool = False,
     ) -> str:
@@ -65,10 +68,22 @@ class Authentication:
 
         if refresh:
             try:
-                redis_key = f"refresh_token:{payload['jti']}"
+                redis_key = payload["jti"]
                 await redis_client.client.set(
                     name=redis_key, value=token, ex=Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS
                 )
+
+                if response:
+                    response.set_cookie(
+                        key="refresh_token",
+                        value=redis_key,
+                        httponly=True,
+                        samesite="none",
+                        secure=True,
+                        max_age=Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS,
+                        path="/",
+                        domain="localhost",
+                    )
 
             except Exception as e:
                 logging.error(f"Failed to initialize Redis client: {e}")

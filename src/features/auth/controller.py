@@ -6,9 +6,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.models.users import User
 from src.db.redis import add_jti_to_block_list, redis_client
-from src.features.departments.controller import DeptController
-from src.features.roles.controller import RoleController
-from src.features.users.controller import UserController
+from src.features.departments.controller import dept_controller
+from src.features.roles.controller import role_controller
+from src.features.users.controller import user_controller
 from src.features.users.schemas import CreateUserModel, LoginUserModel, UserResponseModel
 from src.misc.schemas import ServerRespModel
 from src.utils.exceptions import (
@@ -25,10 +25,6 @@ from src.utils.logger import setup_logger
 
 from .authentication import Authentication
 from .schemas import ChangePwdModel, TokenModel, TokenUserModel, UserType
-
-user_controller = UserController()
-role_controller = RoleController()
-dept_controller = DeptController()
 
 logger = setup_logger(__name__)
 
@@ -49,9 +45,14 @@ class AuthController:
             ).model_dump(mode="json"),
         )
 
-    async def revoke_token(self, token_payload: dict):
+    async def revoke_token(self, refresh_token_jti: Optional[str], token_payload: dict):
         jti = token_payload["jti"]
         await add_jti_to_block_list(jti)
+
+        if refresh_token_jti:
+            await add_jti_to_block_list(refresh_token_jti)
+            response = await redis_client.client.delete(refresh_token_jti)
+            print("Deleted refresh token:", response)
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -61,24 +62,21 @@ class AuthController:
             ).model_dump(),
         )
 
-    async def new_access_token(self, refresh_token: str, session: AsyncSession):
-        if not refresh_token:
+    async def new_access_token(self, token_jti: str, session: AsyncSession):
+        if not token_jti:
             raise RefreshTokenRequired("Refresh token not found.")
 
         try:
+            # first get the token from redis and compare with the provided token
+            refresh_token = await redis_client.client.get(token_jti)
+
+            if not refresh_token:
+                raise RefreshTokenExpired("Refresh token invalid or expired.")
+
             payload = await Authentication.decode_token(refresh_token)
 
             if not payload.get("refresh", False):
                 raise RefreshTokenExpired("Invalid token type.")
-
-            jti = payload.get("jti")
-            redis_key = f"refresh_token:{jti}"
-            stored_token = await redis_client.client.get(redis_key)
-
-            if not stored_token or stored_token != refresh_token:
-                raise RefreshTokenExpired("Refresh token invalid or expired.")
-
-            await redis_client.client.expire(redis_key, Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS)
 
             user_data = payload["user"]
 
@@ -186,8 +184,6 @@ class AuthController:
                 )
 
                 access_token = await Authentication.create_token(user_data)
-                refresh_token = await Authentication.create_token(user_data=user_data, refresh=True)
-
                 await user_controller.update_last_login(user=user, session=session)
 
                 response = JSONResponse(
@@ -201,17 +197,7 @@ class AuthController:
                     ).model_dump(),
                 )
 
-                # Set cookie after creating response
-                response.set_cookie(
-                    key="refresh_token",
-                    value=refresh_token,
-                    httponly=True,
-                    samesite="none",
-                    secure=True,
-                    max_age=Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS,
-                    path="/",
-                    domain="localhost",  # Important for local development
-                )
+                await Authentication.create_token(user_data=user_data, refresh=True, response=response)
 
                 return response
 
