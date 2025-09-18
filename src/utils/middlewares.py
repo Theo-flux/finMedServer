@@ -18,6 +18,7 @@ def register_middlewares(app: FastAPI):
         allow_methods=["*"],
         allow_headers=["*"],
         allow_credentials=True,
+        expose_headers=["Set-Cookie"],
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
     app.add_middleware(BaseHTTPMiddleware, dispatch=custom_context_middleware)

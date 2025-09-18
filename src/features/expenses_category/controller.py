@@ -85,8 +85,6 @@ class ExpCategoryController:
         result = await session.exec(statement=statement)
         categories = result.all()
 
-        print("result", result)
-
         exp_category_responses = [
             ExpCategoryResponseModel.model_validate(category, from_attributes=True) for category in categories
         ]

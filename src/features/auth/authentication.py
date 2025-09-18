@@ -1,10 +1,8 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 from uuid import uuid4
 
 import jwt
-from fastapi import Response
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from jwt import ExpiredSignatureError, PyJWTError
 from passlib.context import CryptContext
@@ -18,7 +16,7 @@ from .schemas import TokenUserModel
 
 class Authentication:
     password_context = CryptContext(schemes=["bcrypt"])
-    ACCESS_TOKEN_EXPIRY_IN_SECONDS = 900  # 15 mins
+    ACCESS_TOKEN_EXPIRY_IN_SECONDS = 10  # 15 mins
     REFRESH_TOKEN_EXPIRY_IN_SECONDS = 604800  # 7 days
 
     PWD_RESET_TOKEN_EXPIRY_IN_SECONDS = 3600  # 1 hour
@@ -33,16 +31,15 @@ class Authentication:
         return Authentication.password_context.verify(password, hash)
 
     @staticmethod
-    def create_token(
+    async def create_token(
         user_data: TokenUserModel,
-        response=Optional[Response],
         expiry: timedelta = None,
         refresh: bool = False,
     ) -> str:
         payload = {}
 
         if refresh:
-            payload["user"] = {"uuid": user_data.uuid, "id": user_data.id}
+            payload["user"] = user_data.model_dump(mode="json", include={"uid", "id"})
         else:
             payload["user"] = user_data.model_dump(mode="json")
 
@@ -69,17 +66,10 @@ class Authentication:
         if refresh:
             try:
                 redis_key = f"refresh_token:{payload['jti']}"
-                redis_client.client.set(name=redis_key, value=token, ex=Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS)
-
-                response.set_cookie(
-                    key="refresh_token",
-                    value=token,
-                    httponly=True,
-                    samesite="lax",
-                    secure=False,
-                    max_age=Authentication.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
-                    path="/api/v1/auth/new-access-token",
+                await redis_client.client.set(
+                    name=redis_key, value=token, ex=Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS
                 )
+
             except Exception as e:
                 logging.error(f"Failed to initialize Redis client: {e}")
                 pass
@@ -87,7 +77,7 @@ class Authentication:
         return token
 
     @staticmethod
-    def decode_token(token: str):
+    async def decode_token(token: str):
         try:
             token_payload = jwt.decode(
                 jwt=token,

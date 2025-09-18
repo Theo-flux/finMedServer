@@ -30,7 +30,7 @@ class TokenBearer(HTTPBearer):
 
     async def is_token_valid(self, token: str) -> bool:
         try:
-            token_payload = Authentication.decode_token(token)
+            token_payload = await Authentication.decode_token(token)
 
             if await token_in_block_list(token_payload["jti"]):
                 raise InvalidToken()
@@ -55,7 +55,7 @@ class TokenBearer(HTTPBearer):
 
         await self.is_token_valid(token)
 
-        token_payload = Authentication.decode_token(token)
+        token_payload = await Authentication.decode_token(token)
         await self.verify_token_data(token_payload)
 
         return token_payload

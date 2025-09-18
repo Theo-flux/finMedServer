@@ -80,8 +80,6 @@ class ServiceController:
         result = await session.exec(statement=statement)
         services = result.all()
 
-        print("result", result)
-
         service_responses = [ServiceResponseModel.model_validate(service, from_attributes=True) for service in services]
 
         return JSONResponse(

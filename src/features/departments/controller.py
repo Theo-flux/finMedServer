@@ -81,8 +81,6 @@ class DeptController:
         result = await session.exec(statement=statement)
         roles = result.all()
 
-        print("result", result)
-
         role_responses = [DeptResponseModel.model_validate(role, from_attributes=True) for role in roles]
 
         return JSONResponse(

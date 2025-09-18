@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import Response, status
+from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -61,38 +61,55 @@ class AuthController:
             ).model_dump(),
         )
 
-    async def new_access_token(self, refresh_token: str):
+    async def new_access_token(self, refresh_token: str, session: AsyncSession):
         if not refresh_token:
             raise RefreshTokenRequired("Refresh token not found.")
 
         try:
-            payload = Authentication.decode_token(refresh_token, refresh=True)
+            payload = await Authentication.decode_token(refresh_token)
 
             if not payload.get("refresh", False):
-                raise InvalidToken("Invalid token type.")
+                raise RefreshTokenExpired("Invalid token type.")
 
             jti = payload.get("jti")
             redis_key = f"refresh_token:{jti}"
-            stored_token = redis_client.client.get(redis_key)
+            stored_token = await redis_client.client.get(redis_key)
 
             if not stored_token or stored_token != refresh_token:
                 raise RefreshTokenExpired("Refresh token invalid or expired.")
 
-            redis_client.client.expire(redis_key, Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS)
+            await redis_client.client.expire(redis_key, Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS)
 
             user_data = payload["user"]
 
-            user = await user_controller.get_user_by_uid(user_data["uid"], session=None)
+            user = await user_controller.get_user_by_uid(user_data["uid"], session=session)
 
             if not user:
                 raise RefreshTokenExpired("Refresh token invalid or expired.")
 
-            new_access_token = Authentication.create_token(user_data=TokenUserModel.model_validate(user_data))
+            new_access_token = await Authentication.create_token(
+                user_data=TokenUserModel.model_validate(
+                    {
+                        "id": user.id,
+                        "uid": user.uid,
+                        "staff_no": user.staff_no,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "email": user.email,
+                        "status": user.status,
+                        "role_uid": user.role_uid,
+                        "department_uid": user.department_uid,
+                    }
+                )
+            )
 
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
-                content=ServerRespModel(
-                    data={"access_token": new_access_token},
+                content=ServerRespModel[TokenModel](
+                    data={
+                        "access_token": new_access_token,
+                        "user_type": UserType.OLD_USER.value,
+                    },
                     message="new access token generated.",
                 ).model_dump(),
             )
@@ -132,7 +149,7 @@ class AuthController:
             content=ServerRespModel[bool](data=True, message="Password reset successful.").model_dump(),
         )
 
-    async def login_user(self, response: Response, login_data: LoginUserModel, session: AsyncSession):
+    async def login_user(self, login_data: LoginUserModel, session: AsyncSession):
         user = await user_controller.get_user_by_mail_or_staff_no(
             email_or_staff_no=login_data.email_or_staff_no, session=session
         )
@@ -147,10 +164,9 @@ class AuthController:
                     content=ServerRespModel[TokenModel](
                         data={
                             "access_token": "",
-                            "refresh_token": "",
                             "user_type": UserType.NEW_USER.value,
                         },
-                        message="user token generated.",
+                        message="user token not generated.",
                     ).model_dump(),
                 )
 
@@ -169,12 +185,12 @@ class AuthController:
                     }
                 )
 
-                access_token = Authentication.create_token(user_data)
-                Authentication.create_token(user_data=user_data, refresh=True, response=response)
+                access_token = await Authentication.create_token(user_data)
+                refresh_token = await Authentication.create_token(user_data=user_data, refresh=True)
 
                 await user_controller.update_last_login(user=user, session=session)
 
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=status.HTTP_200_OK,
                     content=ServerRespModel[TokenModel](
                         data={
@@ -185,6 +201,20 @@ class AuthController:
                     ).model_dump(),
                 )
 
+                # Set cookie after creating response
+                response.set_cookie(
+                    key="refresh_token",
+                    value=refresh_token,
+                    httponly=True,
+                    samesite="none",
+                    secure=True,
+                    max_age=Authentication.REFRESH_TOKEN_EXPIRY_IN_SECONDS,
+                    path="/",
+                    domain="localhost",  # Important for local development
+                )
+
+                return response
+
             raise WrongCredentials()
         else:
             return JSONResponse(
@@ -194,7 +224,7 @@ class AuthController:
                         "access_token": "",
                         "user_type": UserType.OLD_USER.value if user.password else UserType.NEW_USER.value,
                     },
-                    message="user token generated.",
+                    message="user token not generated.",
                 ).model_dump(),
             )
 
