@@ -65,3 +65,18 @@ class BudgetUtilizationModel(BaseModel):
         return str(value)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class IncomeModel(BaseModel):
+    department_name: str
+    department_uid: UUID
+    total_budget: float
+    total_expenses: float
+    utilization_percentage: float
+    remaining_budget: float
+
+    @field_serializer("department_uid")
+    def serialize_uuid(self, value: UUID) -> str:
+        return str(value)
+
+    model_config = ConfigDict(from_attributes=True)
